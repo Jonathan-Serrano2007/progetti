@@ -1,3 +1,19 @@
 {
-    "admin": "$2y$10$wrWv9q6MF5YJ0QYdVzhQ.uUytJbHrIHZKbWGyiVf10VvFGy7.7rFa"
+    "0": {
+        "username": "admin",
+        "ruolo": "admin",
+        "password": "1e351a5f6a4e9fdba16e76c9fee74bce1b216d7dd96f81b9ee13df80f2ac088e36f427af9eec41aa21854137950b1baa"
+    },
+    "1": {
+        "username": "user",
+        "ruolo": "user",
+        "password": "6d44fef485473c1a78f5d8d7f6da6902e2a81ff837f913841cf0b3313a1fa666ba12f678593072431ad021bf14c3f48d"
+    },
+    "2": {
+        "username": "seller",
+        "ruolo": "seller",
+        "password": "b3b4d5ccc3124b38d2a90f05edfd0244aab3eccb5cad40551c1ba82a3df19a2e01b69f35fef50c1076a61e6fb5759931"
+    },
+    "RE": "$2y$10$\/tlmxjOSfZaXblnUVM62LOZEcxH40AgHpYpBPFYXBPkDsrXvGJJ82",
+    "admin": "$2y$10$YsB82PG.LVyfw5Ay1pXO1.XLp\/aCVsomJScJ3bXCwWocCffIF\/Cg."
 }

@@ -57,7 +57,7 @@
         <div class="container mt-4">
             <div class="project-card">
                 <div class="project-title">Progetto personale</div>
-                <a href="musicare/home.php" class="codespace-btn">Vai al progetto</a>
+                <a href="./musicare/login.php" class="codespace-btn">Vai al progetto</a>
             </div>
             <div class="project-card">
                 <div class="project-title">Progetto 2: Gestione Articoli JSON</div>
