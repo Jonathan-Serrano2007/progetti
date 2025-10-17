@@ -55,19 +55,25 @@
 
     <body>
         <header>
+            <div class="container mt-4">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        
+                    </div>
+                    <div class="col text-center">
+                        
+                    </div>
+                </div>
+            </div>
             <!-- place navbar here -->
         </header>
         <main>
-            <div class="row justify-content-center">
-                <h2 class="text-center mt-4">TEP</h2>
-            </div>
             <div class="container">
                 <div class="project-card">
                     <div class="project-title">API TEP</div>
                     <div class="project-desc">Esempio di API che mostra immagini casuali tramite TheCatAPI. Puoi aprire la piccola applicazione che usa cURL per recuperare immagini.</div>
                     <div class="mt-3">
                         <a href="API%20TEP/index.php" class="codespace-btn">Vai all'API TEP</a>
-                        
                     </div>
                 </div>
             </div>

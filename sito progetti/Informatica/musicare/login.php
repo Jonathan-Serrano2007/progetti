@@ -78,46 +78,148 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
-        }
-        $errore = 'Credenziali non valide.';
-    }
-}
-?>
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Login Musicare</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+                            </div>
+        <?php
+        $errore = '';
+        $success = '';
+        $file_cred = __DIR__ . '/credenziali.json';
+        $pepper = "SERRANO_SECRET";
 
-<body class="bg-light">
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h2 class="mb-4 text-center">Login</h2>
-                        <?php if ($errore) { echo '<div class="alert alert-danger">'.$errore.'</div>'; } ?>
-                        <?php if ($success) { echo '<div class="alert alert-success">'.$success.'</div>'; } ?>
-                        <form method="POST" class="mb-3">
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <button type="submit" name="login" class="btn btn-primary">Accedi</button>
-                                <button type="submit" name="register" class="btn btn-success ms-2">Crea account</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+        // Helper per creare entry legacy (salt + sha256)
+        function make_legacy_entry(string $username, string $role, string $pepper): array {
+            $salt = bin2hex(random_bytes(16));
+            $password = $salt . hash('sha256', $salt . $username . $pepper);
+            return [
+                'password' => $password,
+                'ruolo' => $role,
+            ];
+        }
+
+        // Se il file non esiste, crealo con utenti predefiniti (formato associativo username => ['password','ruolo'])
+        if (!file_exists($file_cred)) {
+            $utenti = [];
+            $utenti['admin'] = make_legacy_entry('admin', 'admin', $pepper);
+            $utenti['user'] = make_legacy_entry('user', 'user', $pepper);
+            $utenti['seller'] = make_legacy_entry('seller', 'seller', $pepper);
+            file_put_contents($file_cred, json_encode($utenti, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        }
+
+        session_start();
+        if (isset($_GET['logout'])) {
+            session_destroy();
+            header('Location: index.php');
+            exit;
+        }
+
+        // Carica e normalizza le credenziali: supporta vecchio formato numerico e nuovo formato associativo
+        function load_credentials(string $path): array {
+            $raw = @file_get_contents($path);
+            if ($raw === false) return [];
+            $data = json_decode($raw, true);
+            if (!is_array($data)) return [];
+
+            // Se il file contiene un array numerico di oggetti (vecchio formato), migra verso formato associativo
+            $is_sequential = array_values($data) === $data;
+            if ($is_sequential) {
+                $migrated = [];
+                foreach ($data as $item) {
+                    if (!is_array($item)) continue;
+                    $u = $item['username'] ?? null;
+                    $p = $item['password'] ?? null;
+                    $r = $item['ruolo'] ?? 'contest';
+                    if ($u && $p) {
+                        $migrated[$u] = ['password' => $p, 'ruolo' => $r];
+                    }
+                }
+                // Salva migrazione
+                if (!empty($migrated)) {
+                    file_put_contents($path, json_encode($migrated, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                    return $migrated;
+                }
+            }
+
+            // Se è già associativo e ha valori string o array, normalizza
+            $normalized = [];
+            foreach ($data as $key => $val) {
+                if (is_string($val)) {
+                    // vecchio caso dove username => password_string
+                    $normalized[$key] = ['password' => $val, 'ruolo' => 'contest'];
+                } elseif (is_array($val)) {
+                    $normalized[$key] = [
+                        'password' => $val['password'] ?? '',
+                        'ruolo' => $val['ruolo'] ?? 'contest'
+                    ];
+                }
+            }
+            return $normalized;
+        }
+
+        // Salva le credenziali in formato normalizzato
+        function save_credentials(string $path, array $creds): bool {
+            return file_put_contents($path, json_encode($creds, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) !== false;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (isset($_POST['register'])) {
+                // Registrazione nuovo utente
+                $username = trim($_POST['username'] ?? '');
+                $password = $_POST['password'] ?? '';
+                if ($username === '' || $password === '') {
+                    $errore = 'Username e password richiesti.';
+                } else {
+                    $credenziali = load_credentials($file_cred);
+                    if (isset($credenziali[$username])) {
+                        $errore = 'Username già esistente.';
+                    } else {
+                        $credenziali[$username] = [
+                            'password' => password_hash($password, PASSWORD_DEFAULT),
+                            'ruolo' => 'contest'
+                        ];
+                        if (save_credentials($file_cred, $credenziali)) {
+                            $success = 'Account creato con successo! Ora puoi accedere.';
+                        } else {
+                            $errore = 'Impossibile salvare le credenziali.';
+                        }
+                    }
+                }
+            } else {
+                // Login
+                $username = trim($_POST['username'] ?? '');
+                $password = $_POST['password'] ?? '';
+                if ($username === '' || $password === '') {
+                    $errore = 'Inserisci username e password.';
+                } else {
+                    $credenziali = load_credentials($file_cred);
+                    if (!isset($credenziali[$username])) {
+                        $errore = 'Credenziali non valide.';
+                    } else {
+                        $entry = $credenziali[$username];
+                        $stored = $entry['password'] ?? '';
+                        $role = $entry['ruolo'] ?? 'contest';
+
+                        $ok = false;
+                        // Rileva hash legacy: salt (32 hex) + sha256 (64 hex) => 96 hex chars
+                        if (is_string($stored) && preg_match('/^[0-9a-f]{96}$/i', $stored)) {
+                            $salt = substr($stored, 0, 32);
+                            $hash = $salt . hash('sha256', $salt . $password . $pepper);
+                            if (hash_equals($hash, $stored)) {
+                                $ok = true;
+                            }
+                        } elseif (is_string($stored) && password_verify($password, $stored)) {
+                            $ok = true;
+                        }
+
+                        if ($ok) {
+                            $_SESSION['loggedin'] = true;
+                            $_SESSION['username'] = $username;
+                            $_SESSION['ruolo'] = $role;
+                            header('Location: home.php');
+                            exit;
+                        } else {
+                            $errore = 'Credenziali non valide.';
+                        }
+                    }
+                }
+            }
+        }
+        ?>
