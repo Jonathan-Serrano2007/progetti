@@ -24,7 +24,7 @@ $catImage = $data[0]['url'];
     <a href="../TEP.php" class="btn btn-secondary">Torna indietro</a>
   </div>
   <div style="margin-top:12px;">
-    <a href="../../index.php" class="btn btn-primary">Home</a>
+ 
   </div>
 </section>
 
