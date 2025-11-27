@@ -65,6 +65,20 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Nuova card: Diagramma di Gantt -> gantt.php -->
+				<div class="col-12 col-md-4">
+					<div class="card card-hover h-100">
+						<div class="card-body d-flex flex-column">
+							<h5 class="card-title">Diagramma di Gantt</h5>
+							<p class="card-text">Visualizza il diagramma di Gantt.</p>
+							<div class="mt-auto">
+								<a href="gantt.php" class="btn btn-primary">Vai</a>
+							</div>
+						</div>
+					</div>
+				</div>
+
 			</div>
 
 			<div class="row mt-4">
