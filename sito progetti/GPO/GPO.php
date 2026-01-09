@@ -34,7 +34,7 @@
 							<h5 class="card-title">Diagramma dei casi d'uso</h5>
 							<p class="card-text">Visualizza il diagramma dei casi d'uso.</p>
 							<div class="mt-auto">
-								<a href="view_gpo.php?img=casi_uso" class="btn btn-primary">Apri</a>
+								<a href="view_gpo.php?img=diagramma_dei_casi_duso" class="btn btn-primary">Apri</a>
 							</div>
 						</div>
 					</div>
@@ -47,7 +47,7 @@
 							<h5 class="card-title">Diagramma delle classi</h5>
 							<p class="card-text">Visualizza il diagramma delle classi.</p>
 							<div class="mt-auto">
-								<a href="view_gpo.php?img=classi" class="btn btn-primary">Apri</a>
+								<a href="view_gpo.php?img=diagramma_classi" class="btn btn-primary">Apri</a>
 							</div>
 						</div>
 					</div>
