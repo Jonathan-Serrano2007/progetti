@@ -10,4 +10,4 @@ while True:
         break
     clientSocket.sendto(message.encode(),(serverName, serverPort)) #default message encode utf8
     modifiedMessage, serverAddress = clientSocket.recvfrom(2048) #buffer in bytes
-    print(modifiedMessage.decode())
+    print(modifiedMessage.decode()) 
