@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --m-bg-1: #0f0f0f;
+    --m-bg-2: #1a1a1a;
+    --m-surface: rgba(255, 255, 255, 0.06);
+    --m-surface-2: rgba(255, 255, 255, 0.1);
+    --m-border: rgba(255, 255, 255, 0.16);
+    --m-text: #ffffff;
+    --m-muted: #b3b3b3;
+    --m-accent: #1db954;
+    --m-accent-2: #1ed760;
+    --m-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+}
+
+* {
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at 18% 16%, rgba(29, 185, 84, 0.18) 0%, transparent 32%),
+        linear-gradient(135deg, var(--m-bg-1) 0%, var(--m-bg-2) 100%) !important;
+    color: var(--m-text);
+    min-height: 100vh;
+}
+
+.navbar {
+    background: rgba(15, 15, 15, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--m-accent) 0%, var(--m-accent-2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav-link {
+    color: #ffffff !important;
+}
+
+.card,
+.card-feature,
+.exercise-card,
+.admin-panel,
+.permissions-container,
+.progress-section,
+.table-section,
+.chart-section,
+.dashboard-header,
+.stat-card,
+.cat-card,
+.plan-card,
+.feature-card,
+.login-box,
+.reg-box {
+    background: var(--m-surface) !important;
+    border: 1px solid var(--m-border) !important;
+    color: var(--m-text) !important;
+    box-shadow: var(--m-shadow);
+    backdrop-filter: blur(10px);
+}
+
+.card-header,
+.modal-header,
+.modal-footer {
+    border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.card-body,
+.table-section,
+.chart-section,
+.admin-panel,
+.permissions-container,
+.progress-section,
+.dashboard-header,
+.exercise-card,
+.stat-card,
+.cat-card {
+    color: var(--m-text);
+}
+
+.page-title,
+.section-title,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--m-text) !important;
+}
+
+p,
+small,
+.text-muted,
+.section-desc,
+.subtitle,
+.user-info {
+    color: var(--m-muted) !important;
+}
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: #ffffff;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.04);
+    --bs-table-hover-bg: rgba(29, 185, 84, 0.12);
+    --bs-table-border-color: rgba(255, 255, 255, 0.14);
+}
+
+.form-control,
+.form-select,
+textarea {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea:focus {
+    border-color: var(--m-accent) !important;
+    box-shadow: 0 0 0 0.2rem rgba(29, 185, 84, 0.25) !important;
+}
+
+.form-control::placeholder,
+textarea::placeholder {
+    color: #9a9a9a !important;
+}
+
+.btn-primary,
+.btn-primary-custom,
+.btn-svolgi,
+.codespace-btn {
+    background: var(--m-accent) !important;
+    border: 1px solid var(--m-accent) !important;
+    color: #ffffff !important;
+    border-radius: 999px;
+}
+
+.btn-primary:hover,
+.btn-primary-custom:hover,
+.btn-svolgi:hover,
+.codespace-btn:hover {
+    background: var(--m-accent-2) !important;
+    border-color: var(--m-accent-2) !important;
+    transform: translateY(-1px);
+}
+
+.btn-light,
+.btn-outline-light,
+.btn-secondary {
+    border-radius: 999px;
+}
+
+.badge,
+.role-badge,
+.type-badge,
+.difficulty-badge,
+.permission-badge,
+.pro-badge,
+.lock-badge {
+    border-radius: 999px !important;
+}
+
+.response-box,
+.token-display,
+.alert {
+    border-radius: 12px;
+}
+
+a {
+    color: var(--m-accent);
+}
+
+a:hover {
+    color: var(--m-accent-2);
+}

@@ -6,14 +6,18 @@ $user = 'utente_phpmyadmin';
 $pass = 'ringraziandoPENNETTA';
 $charset = 'utf8mb4';
 
-// Creazione della connessione MySQLi
-$mysqli = new mysqli($host, $user, $pass, $db);
-
-// Verifica errore di connessione
-if ($mysqli->connect_error) {
-    die("Errore di connessione: " . $mysqli->connect_error);
+// Creazione della connessione PDO
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+try {
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+} catch (PDOException $e) {
+    die('Errore di connessione (PDO): ' . $e->getMessage());
 }
 
-// Imposta charset
-$mysqli->set_charset($charset);
+// Esponiamo solo $pdo: il codice ora deve usare PDO nativo
+$GLOBALS['pdo'] = $pdo;
 ?>

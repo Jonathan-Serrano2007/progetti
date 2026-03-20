@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Musicare – Mappa Rotte & Permessi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Poppins', sans-serif; }
+    body { background: #0d0d1a; color: #e0e0ff; min-height: 100vh; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1db954 0%, #1565c0 100%);
+      padding: 3rem 0 2rem;
+      text-align: center;
+    }
+    .hero h1 { font-size: 2.2rem; font-weight: 700; color: #fff; }
+    .hero p  { color: rgba(255,255,255,.85); font-size: 1rem; }
+
+    /* ── Sezioni accesso ── */
+    .section-title {
+      font-size: 1.1rem; font-weight: 700; letter-spacing: .03em;
+      text-transform: uppercase; padding: .55rem 1rem;
+      border-radius: 8px 8px 0 0;
+    }
+    .badge-role {
+      font-size: .7rem; padding: .28em .6em; border-radius: 20px;
+      font-weight: 600; letter-spacing: .04em; vertical-align: middle;
+    }
+
+    /* ── Badge colori ruolo ── */
+    .bg-guest    { background: #555 !important; }
+    .bg-reg      { background: #1565c0 !important; }
+    .bg-pro      { background: #7c3aed !important; }
+    .bg-admin    { background: #c62828 !important; }
+    .bg-api      { background: #00796b !important; }
+
+    /* ── Colori sezione ── */
+    .sec-guest .section-title  { background: rgba(85,85,85,.3);  border-left: 4px solid #9e9e9e; }
+    .sec-reg   .section-title  { background: rgba(21,101,192,.25); border-left: 4px solid #1e88e5; }
+    .sec-pro   .section-title  { background: rgba(124,58,237,.25); border-left: 4px solid #7c3aed; }
+    .sec-admin .section-title  { background: rgba(198,40,40,.22); border-left: 4px solid #e53935; }
+    .sec-api   .section-title  { background: rgba(0,121,107,.22); border-left: 4px solid #26a69a; }
+
+    /* ── Card rotta ── */
+    .route-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      margin-bottom: .75rem;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .route-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+    .route-url {
+      font-family: 'Courier New', monospace;
+      font-size: .88rem;
+      color: #80cbc4;
+      font-weight: 600;
+    }
+    .route-method {
+      font-size: .7rem; font-weight: 700; padding: .2em .55em;
+      border-radius: 4px; vertical-align: middle; margin-right: 4px;
+    }
+    .method-get  { background: #1b5e20; color: #a5d6a7; }
+    .method-post { background: #4a148c; color: #ce93d8; }
+    .route-title { font-weight: 600; font-size: .97rem; }
+    .route-desc  { font-size: .84rem; color: rgba(255,255,255,.62); margin-top: 3px; }
+    .route-priv  { font-size: .77rem; color: #ffb74d; margin-top: 4px; }
+    .route-priv i { margin-right: 4px; }
+
+    /* ── Redirect badge ── */
+    .redirect-badge {
+      font-size: .72rem; color: rgba(255,255,255,.50);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 20px; padding: .18em .6em;
+    }
+
+    /* ── Legenda ── */
+    .legend-box {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px; padding: 1.2rem 1.6rem;
+    }
+
+    /* ── Tabella riepilogo ── */
+    .table-dark { --bs-table-bg: rgba(255,255,255,.03); font-size: .86rem; }
+    .table-dark th { color: #80cbc4; }
+
+    /* ── Frecce flusso ── */
+    .flow-arrow { color: #ffb74d; margin: 0 .4rem; font-size: 1rem; }
+
+    hr { border-color: rgba(255,255,255,.1); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<div class="hero">
+  <div class="container">
+    <h1><i class="bi bi-music-note-beamed me-2"></i>Musicare – Mappa Rotte & Permessi</h1>
+    <p>Architettura delle rotte in coerenza con i casi d'uso e i livelli di accesso</p>
+    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+      <span class="badge badge-role bg-guest">Ospite</span>
+      <span class="badge badge-role bg-reg">Registrato</span>
+      <span class="badge badge-role bg-pro">Pro</span>
+      <span class="badge badge-role bg-admin">Admin</span>
+      <span class="badge badge-role bg-api">API / JWT</span>
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+
+  <!-- ─────────── FLUSSO NAVIGAZIONE ─────────── -->
+  <div class="mb-5">
+    <h5 class="text-white mb-3"><i class="bi bi-diagram-3 me-2 text-warning"></i>Flusso di navigazione</h5>
+    <div class="legend-box d-flex flex-wrap align-items-center gap-2 fs-6">
+      <span class="badge bg-secondary px-3 py-2">Ospite</span>
+      <span class="flow-arrow"><i class="bi bi-arrow-right"></i></span>
+      <code class="text-info">login.php</code> / <code class="text-info">register.php</code>
+      <span class="flow-arrow"><i class="bi bi-arrow-right"></i></span>
+      <span class="badge bg-reg px-3 py-2">Registrato</span>
+      <span class="flow-arrow"><i class="bi bi-arrow-right"></i></span>
+      <code class="text-info">dashboard.php</code>
+      <span class="flow-arrow"><i class="bi bi-arrow-right"></i></span>
+      <code class="text-info">esercizi_base.php</code>
+      <br class="w-100">
+      <span class="badge bg-pro px-3 py-2 mt-2">Pro</span>
+      <span class="flow-arrow mt-2"><i class="bi bi-plus-circle"></i></span>
+      <code class="text-info mt-2">esercizi_pro.php</code>
+      <span class="flow-arrow mt-2"><i class="bi bi-plus-circle"></i></span>
+      <code class="text-info mt-2">statistiche.php</code>
+      <br class="w-100">
+      <span class="badge bg-admin px-3 py-2 mt-2">Admin</span>
+      <span class="flow-arrow mt-2"><i class="bi bi-plus-circle"></i></span>
+      <code class="text-info mt-2">admin_users.php</code>
+      <span class="flow-arrow mt-2"><i class="bi bi-plus-circle"></i></span>
+      <code class="text-info mt-2">admin_exercises.php</code>
+      <span class="flow-arrow mt-2"><i class="bi bi-plus-circle"></i></span>
+      <code class="text-info mt-2">admin_statistics.php</code>
+    </div>
+  </div>
+
+  <!-- ═══════════ SEZIONE OSPITE ═══════════ -->
+  <div class="sec-guest mb-5">
+    <div class="section-title">
+      <span class="badge badge-role bg-guest me-2">Ospite</span>
+      Rotte pubbliche — nessuna autenticazione richiesta
+    </div>
+    <div class="pt-3">
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">index.php</span>
+            <div class="route-title mt-1">Landing page</div>
+            <div class="route-desc">
+              Pagina di benvenuto. Presenta la piattaforma con sezioni «Chi siamo», prova gratuita
+              e call-to-action per login/registrazione. Se l'utente è già loggato viene
+              reindirizzato automaticamente a <code>dashboard.php</code>.
+            </div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-right me-1"></i>→ dashboard.php se loggato</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">login.php</span>
+            <div class="route-title mt-1">Login utente</div>
+            <div class="route-desc">
+              <strong>GET</strong>: mostra il form di accesso.<br>
+              <strong>POST</strong> <code>(email, password)</code>: verifica le credenziali,
+              avvia la sessione (<code>$_SESSION['utente_id']</code>, <code>'utente_nome'</code>,
+              <code>'utente_ruolo'</code>) e reindirizza a <code>dashboard.php</code>.
+              Gestisce anche il logout tramite <code>?logout</code>.
+            </div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-right me-1"></i>→ dashboard.php se loggato</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">register.php</span>
+            <div class="route-title mt-1">Registrazione nuovo utente</div>
+            <div class="route-desc">
+              <strong>GET</strong>: mostra il form di registrazione.<br>
+              <strong>POST</strong> <code>(nome, cognome, email, password)</code>:
+              inserisce il nuovo utente in <code>utenti</code>, inizializza il record
+              in <code>progressi</code> e assegna il ruolo <em>registrato</em> di default.
+              Usa transazione per garantire la coerenza tra le tabelle.
+            </div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-info-circle me-1"></i>→ login.php dopo il successo</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SEZIONE REGISTRATO ═══════════ -->
+  <div class="sec-reg mb-5">
+    <div class="section-title">
+      <span class="badge badge-role bg-reg me-2">Registrato</span>
+      Rotte per utenti autenticati — tutti i ruoli
+    </div>
+    <div class="pt-3">
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">dashboard.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-lock me-1"></i>login richiesto</span>
+            <div class="route-title mt-1">Dashboard personale</div>
+            <div class="route-desc">
+              Hub centrale dopo il login. Mostra nome, ruolo e lista privilegi dell'utente.
+              Visualizza widget differenti in base al ruolo (card per esercizi base, accesso
+              area pro, pannello admin). Supporta il logout tramite <code>?logout</code>.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: — (qualsiasi utente loggato)</div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ login.php se non loggato</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">categoria_esercizi.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-lock me-1"></i>login richiesto</span>
+            <div class="route-title mt-1">Catalogo categorie esercizi</div>
+            <div class="route-desc">
+              Mostra le 4 categorie disponibili: <em>Dettato ritmico</em>, <em>Ear training</em>,
+              <em>Riconoscimento delle note</em>, <em>Tonalità</em>.
+              Ogni card collega a <code>elenco_esercizi.php?cat={slug}</code>.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: — (qualsiasi utente loggato)</div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ login.php se non loggato</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">elenco_esercizi.php?cat={categoria}</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-lock me-1"></i>login richiesto</span>
+            <div class="route-title mt-1">Elenco esercizi per categoria</div>
+            <div class="route-desc">
+              Lista gli esercizi della categoria richiesta tramite query string
+              (<code>?cat=dettato_ritmico</code> | <code>ear_training</code> |
+              <code>riconoscimento_note</code> | <code>tonalita</code>).<br>
+              Verifica se l'utente ha un <strong>abbonamento attivo</strong> in
+              <code>abbonamenti</code>: gli utenti senza abbonamento vedono il
+              banner di upgrade; gli utenti Pro/Admin hanno accesso pieno.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>svolge_esercizi_base</code> (base) | abbonamento attivo per contenuti pro</div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ categoria_esercizi.php se cat invalida</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">esercizi_base.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-lock me-1"></i>login richiesto</span>
+            <div class="route-title mt-1">Esercizi base</div>
+            <div class="route-desc">
+              Carica tutti gli esercizi con <code>tipo_esercizio = 'base'</code> ordinati
+              per difficoltà crescente. Mostra gli ultimi 10 progressi dell'utente dalla
+              tabella <code>svolge</code>.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>svolge_esercizi_base</code> (tutti i ruoli loggati)</div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ login.php se non loggato</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">esercizio.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-lock me-1"></i>login richiesto</span>
+            <div class="route-title mt-1">Svolgimento esercizio</div>
+            <div class="route-desc">
+              <strong>GET</strong>: carica l'interfaccia interattiva di un esercizio
+              (identificato da <code>?esercizio=N</code>, N da 1 a 10).<br>
+              <strong>POST</strong> <code>(action=save_progress, exercise_id, result, time_spent)</code>:
+              salva il risultato in <code>svolge</code>, ricalcola
+              <code>media_punti</code> e <code>tempo_medio_impiegato</code> in
+              <code>progressi</code> tramite UPSERT. Risponde in JSON.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: — (qualsiasi utente loggato)</div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-shield-x me-1"></i>→ 401 JSON se non loggato (su POST)</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SEZIONE PRO ═══════════ -->
+  <div class="sec-pro mb-5">
+    <div class="section-title">
+      <span class="badge badge-role bg-pro me-2">Pro</span>
+      Rotte per utenti con abbonamento Pro (+ Admin)
+    </div>
+    <div class="pt-3">
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">esercizi_pro.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-shield-lock me-1"></i>ruolo: pro / admin</span>
+            <div class="route-title mt-1">Esercizi avanzati (PRO)</div>
+            <div class="route-desc">
+              Carica gli esercizi con <code>tipo_esercizio = 'avanzato'</code> ordinati per
+              difficoltà decrescente. Mostra gli ultimi 20 progressi. L'accesso è limitato
+              ai ruoli <code>pro</code> e <code>admin</code>; gli altri vengono rimandati
+              alla dashboard.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>svolge_esercizi_pro</code></div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ dashboard.php se non autorizzato</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">statistiche.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-shield-lock me-1"></i>ruolo: pro / admin</span>
+            <div class="route-title mt-1">Statistiche personali</div>
+            <div class="route-desc">
+              Mostra le statistiche individuali: <code>media_punti</code>,
+              <code>tempo_medio_impiegato</code> dalla tabella <code>progressi</code>,
+              e lo storico completo degli svolgimenti ordinato per data.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>visualizza_statistiche</code></div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ dashboard.php se non autorizzato</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SEZIONE ADMIN ═══════════ -->
+  <div class="sec-admin mb-5">
+    <div class="section-title">
+      <span class="badge badge-role bg-admin me-2">Admin</span>
+      Rotte riservate agli amministratori (id_ruolo = 3)
+    </div>
+    <div class="pt-3">
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">admin_users.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-shield-fill-exclamation me-1"></i>SOLO admin</span>
+            <div class="route-title mt-1">Gestione utenti</div>
+            <div class="route-desc">
+              <strong>GET</strong>: elenca tutti gli utenti con ruolo corrente.<br>
+              <strong>POST</strong> <code>(azione=cambia_ruolo, id_utente, nuovo_ruolo)</code>:
+              aggiorna <code>utenti.id_ruolo</code>.<br>
+              <strong>POST</strong> <code>(azione=elimina_utente, id_utente)</code>: elimina
+              l'utente (con cascata su progressi, svolge, abbonamenti).
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>gestione_utenti</code></div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ dashboard.php se non admin</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">admin_exercises.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-shield-fill-exclamation me-1"></i>SOLO admin</span>
+            <div class="route-title mt-1">Gestione esercizi</div>
+            <div class="route-desc">
+              <strong>GET</strong>: elenca tutti gli esercizi presenti nel db.<br>
+              <strong>POST</strong> <code>(azione=nuovo_esercizio, categoria, difficolta, tempo)</code>:
+              inserisce un nuovo esercizio.<br>
+              <strong>POST</strong> <code>(azione=elimina_esercizio, id_esercizio)</code>:
+              rimuove l'esercizio.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>gestione_esercizi</code></div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ dashboard.php se non admin</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-url">admin_statistics.php</span>
+            <span class="redirect-badge ms-2"><i class="bi bi-shield-fill-exclamation me-1"></i>SOLO admin</span>
+            <div class="route-title mt-1">Statistiche globali</div>
+            <div class="route-desc">
+              Pannello di controllo con metriche aggregate: numero totale utenti,
+              esercizi presenti nel catalogo, svolgimenti registrati e medie di
+              punteggio/tempo su tutta la piattaforma.
+            </div>
+            <div class="route-priv"><i class="bi bi-key"></i>Privilegio: <code>visualizza_statistiche_globali</code></div>
+          </div>
+          <span class="redirect-badge"><i class="bi bi-arrow-return-left me-1"></i>→ dashboard.php se non admin</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ SEZIONE API JWT ═══════════ -->
+  <div class="sec-api mb-5">
+    <div class="section-title">
+      <span class="badge badge-role bg-api me-2">API / JWT</span>
+      Endpoint REST — autenticazione tramite Bearer token
+    </div>
+    <div class="pt-3">
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">API/auth_api.php</span>
+            <div class="route-title mt-1">Login JWT</div>
+            <div class="route-desc">
+              Body JSON: <code>{ "email": "…", "password": "…" }</code><br>
+              Risposta: <code>{ "access_token": "…", "refresh_token": "…", "expires_in": 600 }</code><br>
+              Access token valido <strong>10 min</strong>, refresh token
+              <strong>7 giorni</strong> (salvato nel campo <code>refresh_token</code>
+              della tabella <code>utenti</code>).
+            </div>
+          </div>
+          <span class="badge bg-secondary">200 / 401 / 405</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-get">GET</span>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">API/permissions_api.php</span>
+            <div class="route-title mt-1">Lettura permessi via JWT</div>
+            <div class="route-desc">
+              Header: <code>Authorization: Bearer &lt;access_token&gt;</code><br>
+              Risposta: <code>{ "utente": {…}, "ruolo": "…", "privilegi": […] }</code><br>
+              Decodifica il JWT, interroga <code>ruolo_privilegi</code> e ritorna il
+              profilo completo delle autorizzazioni.
+            </div>
+          </div>
+          <span class="badge bg-secondary">200 / 401 / 405</span>
+        </div>
+      </div>
+
+      <div class="route-card">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+          <div>
+            <span class="route-method method-post">POST</span>
+            <span class="route-url">API/refresh_api.php</span>
+            <div class="route-title mt-1">Rinnovo access token</div>
+            <div class="route-desc">
+              Body JSON: <code>{ "refresh_token": "…" }</code><br>
+              Verifica il refresh token nel DB, emette un nuovo access token
+              (<strong>10 min</strong>) senza richiedere nuovo login.
+            </div>
+          </div>
+          <span class="badge bg-secondary">200 / 401 / 405</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════ TABELLA RIEPILOGO PERMESSI ═══════════ -->
+  <hr>
+  <h5 class="text-white mb-3 mt-4"><i class="bi bi-table me-2 text-info"></i>Riepilogo permessi per rotta</h5>
+  <div class="table-responsive">
+    <table class="table table-dark table-bordered table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Rotta</th>
+          <th>Metodo</th>
+          <th>Ospite</th>
+          <th>Registrato</th>
+          <th>Pro</th>
+          <th>Admin</th>
+          <th>Privilegio richiesto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>index.php</code></td>         <td>GET</td>      <td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>—</td></tr>
+        <tr><td><code>login.php</code></td>          <td>GET/POST</td> <td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>—</td></tr>
+        <tr><td><code>register.php</code></td>       <td>GET/POST</td> <td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>—</td></tr>
+        <tr><td><code>dashboard.php</code></td>      <td>GET</td>      <td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>login</td></tr>
+        <tr><td><code>categoria_esercizi.php</code></td><td>GET</td>   <td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>login</td></tr>
+        <tr><td><code>elenco_esercizi.php</code></td><td>GET</td>      <td class="text-danger">✗</td><td class="text-warning">◎</td><td class="text-success">✓</td><td class="text-success">✓</td><td><code>svolge_esercizi_base</code> / abbonamento</td></tr>
+        <tr><td><code>esercizi_base.php</code></td>  <td>GET</td>      <td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td><code>svolge_esercizi_base</code></td></tr>
+        <tr><td><code>esercizio.php</code></td>      <td>GET/POST</td> <td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>login</td></tr>
+        <tr><td><code>esercizi_pro.php</code></td>   <td>GET</td>      <td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td><code>svolge_esercizi_pro</code></td></tr>
+        <tr><td><code>statistiche.php</code></td>    <td>GET</td>      <td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td><code>visualizza_statistiche</code></td></tr>
+        <tr><td><code>admin_users.php</code></td>    <td>GET/POST</td> <td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-success">✓</td><td><code>gestione_utenti</code></td></tr>
+        <tr><td><code>admin_exercises.php</code></td><td>GET/POST</td> <td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-success">✓</td><td><code>gestione_esercizi</code></td></tr>
+        <tr><td><code>admin_statistics.php</code></td><td>GET</td>     <td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-danger">✗</td><td class="text-success">✓</td><td><code>visualizza_statistiche_globali</code></td></tr>
+        <tr><td><code>API/auth_api.php</code></td>   <td>POST</td>     <td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>—</td></tr>
+        <tr><td><code>API/permissions_api.php</code></td><td>GET/POST</td><td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>Bearer JWT valido</td></tr>
+        <tr><td><code>API/refresh_api.php</code></td><td>POST</td>     <td class="text-danger">✗</td><td class="text-success">✓</td><td class="text-success">✓</td><td class="text-success">✓</td><td>refresh_token valido</td></tr>
+      </tbody>
+    </table>
+    <p class="text-muted small">◎ = accesso parziale (solo esercizi base; contenuti pro richiedono abbonamento attivo)</p>
+  </div>
+
+  <!-- ═══════════ LEGENDA RUOLI / PRIVILEGI ═══════════ -->
+  <hr>
+  <h5 class="text-white mb-3 mt-4"><i class="bi bi-diagram-2 me-2 text-warning"></i>Gerarchia ruoli e privilegi</h5>
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="legend-box h-100">
+        <span class="badge bg-guest mb-2">Ospite</span>
+        <ul class="list-unstyled mb-0 small text-muted">
+          <li>Nessun account</li>
+          <li>Solo landing, login, registrazione</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="legend-box h-100">
+        <span class="badge bg-reg mb-2">Registrato</span>
+        <ul class="list-unstyled mb-0 small">
+          <li><i class="bi bi-check text-success me-1"></i><code>svolge_esercizi_base</code></li>
+          <li class="text-muted">– esercizi_pro</li>
+          <li class="text-muted">– statistiche</li>
+          <li class="text-muted">– gestione*</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="legend-box h-100">
+        <span class="badge bg-pro mb-2">Pro</span>
+        <ul class="list-unstyled mb-0 small">
+          <li><i class="bi bi-check text-success me-1"></i><code>svolge_esercizi_base</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>svolge_esercizi_pro</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>visualizza_statistiche</code></li>
+          <li class="text-muted">– gestione*</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="legend-box h-100">
+        <span class="badge bg-admin mb-2">Admin</span>
+        <ul class="list-unstyled mb-0 small">
+          <li><i class="bi bi-check text-success me-1"></i><code>svolge_esercizi_base</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>svolge_esercizi_pro</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>visualizza_statistiche</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>gestione_utenti</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>gestione_esercizi</code></li>
+          <li><i class="bi bi-check text-success me-1"></i><code>visualizza_statistiche_globali</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-muted small mt-4 text-center">
+    Musicare – Mappa Rotte v1.0 &nbsp;|&nbsp; Generata il 16 marzo 2026
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

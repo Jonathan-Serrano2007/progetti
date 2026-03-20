@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API JWT - GPO</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container-main {
+            max-width: 1200px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background: linear-gradient(120deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        .response-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+        .response-box.active {
+            display: block;
+        }
+        .response-box pre {
+            margin: 0;
+            color: #333;
+            font-size: 12px;
+        }
+        .response-success {
+            border-left-color: #28a745;
+        }
+        .response-error {
+            border-left-color: #dc3545;
+        }
+        .badge-success {
+            background-color: #28a745;
+        }
+        .badge-error {
+            background-color: #dc3545;
+        }
+        .section-title {
+            color: white;
+            font-weight: bold;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .token-display {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-size: 12px;
+        }
+        .spinner {
+            display: none;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+    <link href="../musicare-theme.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-main">
+        <h1 class="text-white text-center mb-4">🔐 Test API JWT - Sistema Autenticazione GPO</h1>
+
+        <!-- SEZIONE 1: LOGIN -->
+        <h2 class="section-title">1️⃣ AUTENTICAZIONE (Login)</h2>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Genera JWT Token</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="loginEmail" class="form-control" value="a@gmail.com" placeholder="Inserisci email">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="Inserisci password">
+                </div>
+                <button class="btn btn-primary" id="btnLogin" onclick="login()">
+                    <span class="spinner spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Effettua Login
+                </button>
+
+                <div id="loginResponse" class="response-box">
+                    <strong>Response:</strong>
+                    <pre id="loginResponseText"></pre>
+                </div>
+
+                <div id="tokensDisplay" style="display: none; margin-top: 20px;">
+                    <h6>📌 Token Generato:</h6>
+                    <div class="mb-2">
+                        <strong>Access Token (10 min):</strong>
+                        <div class="token-display" id="accessTokenDisplay"></div>
+                        <small class="text-muted">Copia per usarlo negli altri endpoint</small>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Refresh Token (7 giorni):</strong>
+                        <div class="token-display" id="refreshTokenDisplay"></div>
+                        <small class="text-muted">Usalo per ottenere un nuovo access token</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE 2: REFRESH TOKEN -->
+        <h2 class="section-title">2️⃣ RINNOVA TOKEN</h2>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Genera Nuovo Access Token da Refresh Token</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Refresh Token</label>
+                    <textarea id="refreshTokenInput" class="form-control" rows="3" placeholder="Incolla il refresh token"></textarea>
+                </div>
+                <button class="btn btn-warning" id="btnRefresh" onclick="refreshToken()">
+                    <span class="spinner spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Rinnova Token
+                </button>
+
+                <div id="refreshResponse" class="response-box">
+                    <strong>Response:</strong>
+                    <pre id="refreshResponseText"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE 3: PERMESSI -->
+        <h2 class="section-title">3️⃣ OTTIENI PERMESSI</h2>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Verifica Token e Ottieni Permessi</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Access Token</label>
+                    <textarea id="accessTokenInput" class="form-control" rows="3" placeholder="Incolla il token dall'autenticazione"></textarea>
+                </div>
+                <button class="btn btn-success" id="btnPermissions" onclick="getPermissions()">
+                    <span class="spinner spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Ottieni Permessi
+                </button>
+
+                <div id="permissionsResponse" class="response-box">
+                    <strong>Response:</strong>
+                    <pre id="permissionsResponseText"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE 4: INFORMAZIONI -->
+        <h2 class="section-title">ℹ️ INFORMAZIONI</h2>
+        <div class="alert alert-info">
+            <h6>Credenziali di Test:</h6>
+            <ul class="mb-0">
+                <li><strong>Email:</strong> a@gmail.com</li>
+                <li><strong>Password:</strong> (da compilare)</li>
+                <li><strong>Ruolo:</strong> Admin</li>
+            </ul>
+        </div>
+
+        <div class="alert alert-warning">
+            <h6>⏱️ Scadenza Token:</h6>
+            <ul class="mb-0">
+                <li><strong>Access Token:</strong> 10 minuti</li>
+                <li><strong>Refresh Token:</strong> 7 giorni</li>
+            </ul>
+        </div>
+
+        <div class="alert alert-secondary">
+            <h6>📚 Endpoints API:</h6>
+            <ul class="mb-0">
+                <li><code>/sito%20progetti/Informatica/musicare/API/auth_api.php</code> - Login e generazione token</li>
+                <li><code>/sito%20progetti/Informatica/musicare/API/refresh_api.php</code> - Rinnova access token</li>
+                <li><code>/sito%20progetti/Informatica/musicare/API/permissions_api.php</code> - Ottieni permessi</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '.';
+
+        async function parseJsonResponse(response) {
+            const rawText = await response.text();
+
+            try {
+                return {
+                    data: JSON.parse(rawText),
+                    rawText
+                };
+            } catch (error) {
+                const snippet = rawText.slice(0, 300).trim();
+                return {
+                    data: {
+                        error: `Risposta non valida (atteso JSON). HTTP ${response.status} ${response.statusText}`,
+                        response_preview: snippet || '(risposta vuota)'
+                    },
+                    rawText
+                };
+            }
+        }
+
+        function showSpinner(btnId) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = true;
+            btn.querySelector('.spinner').style.display = 'inline-block';
+        }
+
+        function hideSpinner(btnId) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = false;
+            btn.querySelector('.spinner').style.display = 'none';
+        }
+
+        function displayResponse(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            const textElement = document.getElementById(elementId + 'Text');
+            element.classList.add('active');
+            element.classList.toggle('response-error', isError);
+            element.classList.toggle('response-success', !isError);
+            textElement.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function login() {
+            showSpinner('btnLogin');
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                alert('Inserisci email e password');
+                hideSpinner('btnLogin');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth_api.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const { data } = await parseJsonResponse(response);
+
+                if (response.ok && data.success) {
+                    displayResponse('loginResponse', data, false);
+
+                    // Salva i token
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+
+                    // Mostra i token
+                    document.getElementById('tokensDisplay').style.display = 'block';
+                    document.getElementById('accessTokenDisplay').textContent = data.access_token;
+                    document.getElementById('refreshTokenDisplay').textContent = data.refresh_token;
+
+                    // Pre-compila i campi
+                    document.getElementById('accessTokenInput').value = data.access_token;
+                    document.getElementById('refreshTokenInput').value = data.refresh_token;
+                } else {
+                    displayResponse('loginResponse', data, true);
+                }
+            } catch (error) {
+                displayResponse('loginResponse', { error: error.message }, true);
+            } finally {
+                hideSpinner('btnLogin');
+            }
+        }
+
+        async function refreshToken() {
+            showSpinner('btnRefresh');
+            const refreshTokenValue = document.getElementById('refreshTokenInput').value;
+
+            if (!refreshTokenValue) {
+                alert('Inserisci il refresh token');
+                hideSpinner('btnRefresh');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/refresh_api.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh_token: refreshTokenValue })
+                });
+
+                const { data } = await parseJsonResponse(response);
+                displayResponse('refreshResponse', data, !response.ok);
+
+                if (response.ok && data.success) {
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+
+                    document.getElementById('accessTokenDisplay').textContent = data.access_token;
+                    document.getElementById('refreshTokenDisplay').textContent = data.refresh_token;
+                    document.getElementById('accessTokenInput').value = data.access_token;
+                    document.getElementById('refreshTokenInput').value = data.refresh_token;
+                    document.getElementById('tokensDisplay').style.display = 'block';
+                }
+            } catch (error) {
+                displayResponse('refreshResponse', { error: error.message }, true);
+            } finally {
+                hideSpinner('btnRefresh');
+            }
+        }
+
+        async function getPermissions() {
+            showSpinner('btnPermissions');
+            const token = document.getElementById('accessTokenInput').value.trim();
+
+            if (!token) {
+                alert('Inserisci il token');
+                hideSpinner('btnPermissions');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/permissions_api.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const { data } = await parseJsonResponse(response);
+                displayResponse('permissionsResponse', data, !response.ok);
+            } catch (error) {
+                displayResponse('permissionsResponse', { error: error.message }, true);
+            } finally {
+                hideSpinner('btnPermissions');
+            }
+        }
+
+        // Carica il token salvato al caricamento della pagina
+        window.addEventListener('load', () => {
+            const savedAccessToken = localStorage.getItem('access_token');
+            const savedRefreshToken = localStorage.getItem('refresh_token');
+
+            if (savedAccessToken) {
+                document.getElementById('accessTokenInput').value = savedAccessToken;
+                document.getElementById('tokensDisplay').style.display = 'block';
+                document.getElementById('accessTokenDisplay').textContent = savedAccessToken;
+            }
+
+            if (savedRefreshToken) {
+                document.getElementById('refreshTokenInput').value = savedRefreshToken;
+                document.getElementById('tokensDisplay').style.display = 'block';
+                document.getElementById('refreshTokenDisplay').textContent = savedRefreshToken;
+            }
+        });
+    </script>
+</body>
+</html>

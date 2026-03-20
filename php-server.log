@@ -1,0 +1,7 @@
+[Thu Jan 29 11:58:37 2026] PHP 8.0.30 Development Server (http://127.0.0.1:8000) started
+[Thu Jan 29 11:58:43 2026] 127.0.0.1:44340 Accepted
+[Thu Jan 29 11:58:43 2026] 127.0.0.1:44340 [401]: POST /sito%20progetti/Informatica/musicare/JWT/login_api.php
+[Thu Jan 29 11:58:43 2026] 127.0.0.1:44340 Closing
+[Thu Jan 29 12:00:12 2026] 127.0.0.1:55530 Accepted
+[Thu Jan 29 12:00:12 2026] 127.0.0.1:55530 [401]: POST /sito%20progetti/Informatica/musicare/JWT/login_api.php
+[Thu Jan 29 12:00:12 2026] 127.0.0.1:55530 Closing
