@@ -6,6 +6,9 @@
 
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 if (!isset($_SESSION['utente_id'])) {
     header("Location: login.php");
@@ -15,10 +18,10 @@ if (!isset($_SESSION['utente_id'])) {
 $id_utente = $_SESSION['utente_id'];
 
 // Verifica che sia ADMIN
-$sql = "SELECT u.id_ruolo FROM utenti u WHERE u.id_utente = ? AND u.id_ruolo = 3";
+$sql = "SELECT u.id_ruolo FROM utenti u WHERE u.id_utente = ? AND u.id_ruolo = 3 AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         header("Location: dashboard.php");
@@ -41,10 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id_utente_target = intval($_POST['id_utente']);
             $nuovo_ruolo = intval($_POST['nuovo_ruolo']);
             
-            $sql_update = "UPDATE utenti SET id_ruolo = ? WHERE id_utente = ?";
+            $sql_update = "UPDATE utenti SET id_ruolo = ? WHERE id_utente = ? AND id_tenant = ?";
             try {
                 $stmt_update = $pdo->prepare($sql_update);
-                if ($stmt_update->execute([$nuovo_ruolo, $id_utente_target])) {
+                if ($stmt_update->execute([$nuovo_ruolo, $id_utente_target, $tenant_id])) {
                 $messaggio = "Ruolo utente aggiornato con successo!";
                 $tipo_messaggio = "success";
                 } else {
@@ -63,9 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $sql_utenti = "SELECT u.id_utente, u.nome, u.cognome, u.email, u.data_registrazione, r.nome_ruolo, r.id_ruolo
                FROM utenti u
                LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo
+               WHERE u.id_tenant = ?
                ORDER BY u.data_registrazione DESC";
 try {
-    $stmt_utenti = $pdo->query($sql_utenti);
+    $stmt_utenti = $pdo->prepare($sql_utenti);
+    $stmt_utenti->execute([$tenant_id]);
     $utenti = $stmt_utenti->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $utenti = [];

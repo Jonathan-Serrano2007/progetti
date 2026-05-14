@@ -6,6 +6,9 @@
 
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 if (!isset($_SESSION['utente_id'])) {
     header("Location: login.php");
@@ -15,10 +18,10 @@ if (!isset($_SESSION['utente_id'])) {
 $id_utente = $_SESSION['utente_id'];
 
 // Verifica il ruolo
-$sql = "SELECT u.id_ruolo, r.nome_ruolo FROM utenti u LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo WHERE u.id_utente = ?";
+$sql = "SELECT u.id_ruolo, r.nome_ruolo FROM utenti u LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo WHERE u.id_utente = ? AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$user || !in_array($user['nome_ruolo'], ['pro', 'admin'])) {
         header("Location: dashboard.php");
@@ -31,9 +34,9 @@ try {
 
 // Leggi statistiche dell'utente
 try {
-    $sql = "SELECT * FROM progressi WHERE id_utente = ?";
+    $sql = "SELECT * FROM progressi WHERE id_utente = ? AND id_tenant = ?";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $stats = null;
@@ -41,9 +44,9 @@ try {
 
 // Leggi i dettagli dei progressi
 try {
-    $sql_details = "SELECT * FROM svolge WHERE id_utente = ? ORDER BY data_completamento DESC";
+    $sql_details = "SELECT * FROM svolge WHERE id_utente = ? AND id_tenant = ? ORDER BY data_completamento DESC";
     $stmt_details = $pdo->prepare($sql_details);
-    $stmt_details->execute([$id_utente]);
+    $stmt_details->execute([$id_utente, $tenant_id]);
     $progressi_details = $stmt_details->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $progressi_details = [];

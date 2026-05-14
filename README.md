@@ -1,269 +1,172 @@
-**Nome e cognome**
+# Progetto: Musicare (repository progetti)
 
-Serranò Jonathan
+Questo repository contiene piu moduli scolastici, con focus principale sulla web app **Musicare**:
 
-_________________________________________________________________________________________________________________________________________________________________________
+- autenticazione utente (sessione PHP e API JWT)
+- gestione ruoli/privilegi
+- esercizi musicali (base/pro)
+- area statistiche e dashboard
 
-**Titolo**
+## Struttura repository
 
-Musicare
+- `sito progetti/Informatica/musicare/`: applicazione principale Musicare
+- `sito progetti/Informatica/musicare/API/`: endpoint JWT (auth, refresh, permissions)
+- `sito progetti/Informatica/musicare/migrations/`: migrazioni SQL
+- `install.sh`: setup locale Apache + PHP + MariaDB + phpMyAdmin
+- `avvia.sh`: avvio rapido servizi locali
 
-_________________________________________________________________________________________________________________________________________________________________________
+## Requisiti
 
-**Tagline**
+- Linux (testato in ambiente Ubuntu)
+- Apache2
+- PHP con PDO MySQL
+- MariaDB/MySQL
+- Composer (dipendenza: `firebase/php-jwt`)
 
-Raccogli gli strumenti necessari per Musicare come si deve!
+## Setup rapido (locale)
 
-_________________________________________________________________________________________________________________________________________________________________________
+1. Rendi eseguibili gli script:
 
-**Descrizione**
+```bash
+chmod +x install.sh avvia.sh
+```
 
-Sito che mira all'allenamento delle conoscenze musicali tramite esercizi di riconoscimento delle note sul pentagramma, dettati ritmici e melodici, esercizi di ear training ed esercizi ai fini di individuare le tonalità dei brani attraverso le alterazioni in chiave. Gli esercizi più semplici di ogni categoria saranno gratuiti mentre quelli più avanzati saranno a pagamento. Il piano pro (a pagamento) permetterà di salvare i progessi per visualizzare il proprio percorso attraverso grafici.
+2. Esegui installazione stack locale:
 
-_________________________________________________________________________________________________________________________________________________________________________
+```bash
+./install.sh
+```
 
+3. Avvia i servizi:
 
-**Descrizione completa**
+```bash
+./avvia.sh
+```
 
-1. Attori
+4. Installa dipendenze PHP (se necessario):
 
-Utente non registrato
+```bash
+composer install
+```
 
-* Non può accedere a nessuna funzionalità del sito.
-* Non può visualizzare esercizi né categorie.
-* Può unicamente accedere alla pagina di registrazione.
-* Ogni tentativo di accedere a contenuti del sito lo reindirizza alla registrazione.
+## Database
 
-Utente base (registrato senza abbonamento)
+### Configurazione connessione applicazione
 
-* Può accedere tramite login.
-* Può visualizzare le categorie di esercizi.
-* Può svolgere solo esercizi base (1–5) di ogni categoria.
-* Non può salvare progressi.
+Il file `sito progetti/Informatica/musicare/database.php` usa al momento:
 
-Utente Pro (registrato con abbonamento attivo)
+- host: `127.0.0.1`
+- db: `my_serranojonathan`
+- user: `utente_phpmyadmin`
 
-* Può accedere tramite login.
-* Può svolgere esercizi base e avanzati (1–10).
-* Può salvare e visualizzare progressi tramite grafici.
-* Può svolgere l’esercizio giornaliero personalizzato.
+Aggiorna questi valori in base al tuo ambiente prima di usare l'applicazione in produzione.
 
----
+### Migrazione ultima modifica (refresh token)
 
-2. Casi d’Uso
+Per allineare il DB alle ultime modifiche JWT, applica la migrazione:
 
-UC1 – Registrazione
+```sql
+ALTER TABLE utenti
+ADD COLUMN refresh_token TEXT NULL AFTER password;
+```
 
-Attore: Utente non registrato
-Descrizione: L’utente crea un account per accedere al sito.
-Precondizione: Non essere già registrato.
-Postcondizione: Diventa Utente base.
-Nota: È l’unica azione consentita all’utente non registrato.
+Script disponibile in:
 
----
+- `sito progetti/Informatica/musicare/migrations/20260220_add_refresh_token_to_utenti.sql`
 
-UC2 – Accesso (Login)
+## JWT e sicurezza
 
-Attore: Utente base / Utente pro
-Descrizione: L’utente accede al sistema tramite credenziali.
-Precondizione: Essere registrato.
-Postcondizione: L’utente acquisisce accesso ai contenuti relativi al proprio ruolo.
+La configurazione JWT e gestita in `sito progetti/Informatica/musicare/API/jwt_config.php`.
 
----
+- variabile supportata: `JWT_SECRET`
+- fallback locale se non impostata: secret di sviluppo
+- lunghezza minima secret: 32 caratteri
 
-UC3 – Acquisto Abbonamento Pro
+Esempio di export variabile ambiente:
 
-Attore: Utente base
-Descrizione: L’utente acquista un abbonamento per sbloccare contenuti avanzati e progressi.
-Precondizione: Login effettuato.
-Postcondizione: L’utente diventa Utente Pro.
+```bash
+export JWT_SECRET='inserisci-qui-una-chiave-lunga-almeno-32-caratteri'
+```
 
----
+## API Musicare (stato attuale)
 
-UC4 – Visualizzare Elenco Esercizi
+Base path locale tipico:
 
-Attore: Utente base / Utente pro
-Descrizione: L’utente visualizza le categorie di esercizi:
+```text
+/sito%20progetti/Informatica/musicare/API
+```
 
-* Dettato ritmico
-* Ear training
-* Riconoscimento delle note
-* Tonalità
+### 1) Login e generazione token
 
-Ogni categoria contiene 10 esercizi:
+- endpoint: `POST /auth_api.php`
+- body JSON: `email`, `password`
+- risposta: `access_token` (10 min) + `refresh_token` (7 giorni)
 
-* Esercizi 1–5 (base) → accessibili a tutti gli utenti registrati
-* Esercizi 6–10 (avanzati) → accessibili solo all’utente Pro
+Esempio:
 
-Precondizione: Utente loggato.
+```bash
+curl -X POST http://localhost/sito%20progetti/Informatica/musicare/API/auth_api.php \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"utente@example.com","password":"password"}'
+```
 
----
+### 2) Refresh token
 
-UC5 – Svolgere Esercizio
+- endpoint: `POST /refresh_api.php`
+- body JSON: `refresh_token`
+- comportamento: ruota il refresh token e restituisce nuovi token
 
-Attore: Utente base / Utente pro
-Descrizione: L’utente svolge un esercizio completo di:
+Esempio:
 
-* Timer
-* Punteggio finale
+```bash
+curl -X POST http://localhost/sito%20progetti/Informatica/musicare/API/refresh_api.php \
+  -H 'Content-Type: application/json' \
+  -d '{"refresh_token":"<refresh_token>"}'
+```
 
-Precondizioni:
+### 3) Permessi utente
 
-* Utente base: solo esercizi 1–5
-* Utente pro: esercizi 1–10
+- endpoint: `GET|POST /permissions_api.php`
+- token via header `Authorization: Bearer <token>`
+- fallback supportati: query string `?token=...` o body JSON `{ "token": "..." }`
 
-Postcondizione:
+Esempio:
 
-* Utente base: il risultato NON viene salvato
-* Utente pro: il risultato viene salvato nei progressi
+```bash
+curl -X POST http://localhost/sito%20progetti/Informatica/musicare/API/permissions_api.php \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <access_token>' \
+  -d '{}'
+```
 
----
+## Pagine di test API
 
-UC6 – Visualizzare Progressi
+- `sito progetti/Informatica/musicare/API/test.html`
+- `sito progetti/Informatica/musicare/API/debug_tokens.html`
 
-Attore: Utente pro
-Descrizione: L’utente vede grafici e statistiche relative ai risultati conseguiti.
-I progressi devono includere:
+Nota: in `test.html` gli endpoint sono referenziati in modo relativo (`./auth_api.php`, `./refresh_api.php`, `./permissions_api.php`) per compatibilita tra ambienti.
 
-* Risultati esercizi base
-* Risultati esercizi avanzati
+## Funzionalita principali Musicare
 
----
+- registrazione/login utenti
+- distinzione tra utente base e pro
+- dashboard e statistiche
+- esercizi musicali per categorie
+- API JWT per integrazione frontend/backend
 
-UC7 – Esercizio Giornaliero Personalizzato
+## Avvio applicazione
 
-Attore: Utente pro
-Descrizione: Il sistema genera automaticamente un esercizio quotidiano con difficoltà adeguata ai progressi dell’utente.
-Postcondizione: L’esercizio viene salvato nei progressi con timer e punteggio.
+Dopo aver avviato Apache e MariaDB, apri la root del progetto web nel browser in base alla tua configurazione Apache. Per phpMyAdmin, lo script di installazione configura l'alias:
 
----
+```text
+http://localhost/phpmyadmin
+```
 
-3. Requisiti Funzionali
+## Note importanti
 
-RF1 – Registrazione
+- Il repository contiene credenziali e impostazioni pensate per ambiente didattico/locale.
+- Prima di deploy pubblico: ruota password, imposta `JWT_SECRET` robusta, limita privilegi DB e aggiorna CORS.
 
-* L’unica pagina accessibile all’utente non registrato è la registrazione.
-* L’utente non registrato non può visualizzare esercizi o categorie.
+## Autore
 
-RF2 – Login
-
-* Sistema di autenticazione tramite email e password.
-
-RF3 – Gestione ruoli
-
-* Il sistema distingue automaticamente tra:
-  utente non registrato → utente base → utente pro.
-
-RF4 – Abbonamento
-
-* L’utente base può acquistare un piano pro.
-* L’abbonamento sblocca esercizi avanzati e progressi.
-
-RF5 – Struttura degli esercizi
-
-Per ogni categoria devono essere presenti 10 esercizi:
-
-* 1–5 base (gratuiti)
-* 6–10 avanzati (bloccati per l’utente base)
-
-RF6 – Meccanica degli esercizi
-
-Ogni esercizio deve avere:
-
-* Timer
-* Punteggio finale
-* Valutazione automatica
-
-RF7 – Svolgimento degli esercizi
-
-* Utente base → 1–5
-* Utente pro → 1–10
-* Solo l’utente pro salva i risultati.
-
-RF8 – Progressi
-
-* L’utente pro visualizza grafici e statistiche.
-* I progressi devono raccogliere dati da esercizi base e avanzati.
-
-RF9 – Esercizio giornaliero personalizzato
-
-* Disponibile solo per utenti pro.
-* La difficoltà è determinata dall’andamento dei progressi.
-
----
-
-4. Requisiti Non Funzionali (RNF)
-
-RNF1 – Usabilità: interfaccia chiara e intuitiva.
-RNF2 – Performance: caricamento rapido (<2 s).
-RNF3 – Sicurezza: password criptate, transazioni sicure.
-RNF4 – Compatibilità: desktop, tablet, mobile.
-RNF5 – Scalabilità: supporto a numerosi utenti simultanei.
-
----
-
-5. Definizioni delle categorie di esercizi
-
-1. Dettato ritmico
-
-Esercizio in cui l’utente ascolta un ritmo composto da battiti, figure musicali e pause, e deve riscriverlo correttamente. Allena il riconoscimento di durate, accenti e pattern ritmici.
-
----
-
-2. Ear training
-
-Esercizi dedicati allo sviluppo dell’orecchio musicale, tra cui:
-
-* riconoscimento intervalli
-* accordi
-* scale
-* progressioni armoniche
-* altezze delle note
-  Aiuta a capire ciò che si ascolta senza avere uno spartito.
-
----
-
-3. Riconoscimento delle note (note identification)
-
-L’esercizio mostra una nota sul pentagramma e l’utente deve identificarla (Do, Re, Mi… oppure C, D, E). Migliora la capacità di lettura a prima vista.
-
----
-
-4. Tonalità (key signature)
-
-L’utente deve identificare la tonalità osservando il numero di alterazioni (diesis o bemolli) in chiave. Serve a riconoscere rapidamente tonalità come Do maggiore, Sol maggiore, Fa maggiore, Re minore ecc.
-
-_________________________________________________________________________________________________________________________________________________________________________
-
-
-**Target**
-
-musicisti, chiunque voglia rafforzare le proprie competenze musicali teoriche, armoniche e percettive.
-
-
-_________________________________________________________________________________________________________________________________________________________________________
-
-
-**Competitors**
-
-musictheory.net - EarMaster - Teoria.com
-
-
-_________________________________________________________________________________________________________________________________________________________________________
-
-**Tecnologie**
-
-Frontend: HTML, CSS, Bootstrap, Javascript
-Backend: PHP
-Database: MySQL
-
-_________________________________________________________________________________________________________________________________________________________________________
-
-
-**Link web app**
-
-_________________________________________________________________________________________________________________________________________________________________________
-
-**Link prototipo**
-
-https://id-preview--e4224955-53a8-49d2-9b5c-b4be9dd144b6.lovable.app/?__lovable_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoib1QwbjVHaUlDb1RDNURzaDBBRDBqQjUzUHREMyIsInByb2plY3RfaWQiOiJlNDIyNDk1NS01M2E4LTQ5ZDItOWI1Yy1iNGJlOWRkMTQ0YjYiLCJub25jZSI6IjBkM2RhMjZkODgxNDc3NmQ3MmJkN2VmZmQwMGMzNTNlIiwiaXNzIjoibG92YWJsZS1hcGkiLCJzdWIiOiJlNDIyNDk1NS01M2E4LTQ5ZDItOWI1Yy1iNGJlOWRkMTQ0YjYiLCJhdWQiOlsibG92YWJsZS1hcHAiXSwiZXhwIjoxNzY0ODcyMzQ0LCJuYmYiOjE3NjQyNjc1NDQsImlhdCI6MTc2NDI2NzU0NH0.QWEcBaKz7AO0wTxs7fGq0ZtJ1wnKRAebi85V000HXm4
+Jonathan Serrano

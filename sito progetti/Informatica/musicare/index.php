@@ -1,17 +1,17 @@
 <?php 
 session_start();
 include_once 'database.php';
+require_once 'tenant_context.php';
 
-// Auto-redirect to dashboard if logged in
-if (isset($_SESSION['utente_id'])) {
-    header('Location: dashboard.php');
-    exit;
-}
+$tenant_id = musicare_get_request_tenant_id() ?? musicare_get_current_tenant_id();
+$tenant_query = '?tenant=' . urlencode($tenant_id);
+$login_url = 'login.php' . $tenant_query;
+$register_url = 'register.php' . $tenant_query;
 
 // Handle logout
 if (isset($_GET['logout'])) {
     session_destroy();
-    header('Location: index.php');
+    header('Location: index.php' . $tenant_query);
     exit;
 }
 ?>
@@ -344,7 +344,7 @@ if (isset($_GET['logout'])) {
                         <a class="nav-link" href="#plans">Piani</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn-primary-custom ms-2" href="login.php">Accedi</a>
+                        <a class="nav-link btn-primary-custom ms-2" href="<?php echo htmlspecialchars($login_url, ENT_QUOTES, 'UTF-8'); ?>">Accedi</a>
                     </li>
                 </ul>
             </div>
@@ -357,8 +357,8 @@ if (isset($_GET['logout'])) {
             <h1>🎵 La tua musica, il tuo mondo</h1>
             <p>Scopri una comunità di musicisti appassionati. Condividi, impara e crea insieme</p>
             <div class="cta-buttons">
-                <a href="login.php" class="btn-primary-custom">Accedi</a>
-                <a href="register.php" class="btn-secondary-custom">Registrati</a>
+                <a href="<?php echo htmlspecialchars($login_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn-primary-custom">Accedi</a>
+                <a href="<?php echo htmlspecialchars($register_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn-secondary-custom">Registrati</a>
             </div>
         </div>
     </div>
@@ -450,7 +450,7 @@ if (isset($_GET['logout'])) {
                             <li><i class="bi bi-x-circle"></i> Esercizi Avanzati</li>
                         </ul>
                         <div class="plan-cta">
-                            <a href="register.php" class="btn-secondary-custom">Registrati Gratis</a>
+                            <a href="<?php echo htmlspecialchars($register_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn-secondary-custom">Registrati Gratis</a>
                         </div>
                     </div>
                 </div>
@@ -467,7 +467,7 @@ if (isset($_GET['logout'])) {
                             <li><i class="bi bi-check-circle"></i> Priorità nel Support</li>
                         </ul>
                         <div class="plan-cta">
-                            <a href="register.php" class="btn-primary-custom">Iscriviti Pro</a>
+                            <a href="<?php echo htmlspecialchars($register_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn-primary-custom">Iscriviti Pro</a>
                         </div>
                     </div>
                 </div>
@@ -496,8 +496,8 @@ if (isset($_GET['logout'])) {
     <footer>
         <div class="container">
             <div class="footer-links">
-                <a href="login.php"><i class="bi bi-box-arrow-in-right"></i> Accedi</a>
-                <a href="register.php"><i class="bi bi-person-plus"></i> Registrati</a>
+                <a href="<?php echo htmlspecialchars($login_url, ENT_QUOTES, 'UTF-8'); ?>"><i class="bi bi-box-arrow-in-right"></i> Accedi</a>
+                <a href="<?php echo htmlspecialchars($register_url, ENT_QUOTES, 'UTF-8'); ?>"><i class="bi bi-person-plus"></i> Registrati</a>
                 <a href="API/test.html"><i class="bi bi-gear"></i> API Test</a>
             </div>
             <p>&copy; 2024 Musicare - La piattaforma musicale per tutti</p>

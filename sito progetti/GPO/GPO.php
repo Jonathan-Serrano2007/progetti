@@ -27,14 +27,14 @@
 			</div>
 
 			<div class="row g-3">
-				<!-- Diagramma dei casi d'uso -> img/casi_uso.png -->
+				<!-- Diagramma dei casi d'uso -> img/casi d'uso.png -->
 				<div class="col-12 col-md-4">
 					<div class="card card-hover h-100">
 						<div class="card-body d-flex flex-column">
 							<h5 class="card-title">Diagramma dei casi d'uso</h5>
 							<p class="card-text">Visualizza il diagramma dei casi d'uso.</p>
 							<div class="mt-auto">
-								<a href="view_gpo.php?img=diagramma_dei_casi_duso" class="btn btn-primary">Apri</a>
+								<a href="view_gpo.php?img=casi%20d%27uso" class="btn btn-primary">Apri</a>
 							</div>
 						</div>
 					</div>
@@ -61,19 +61,6 @@
 							<p class="card-text">Visualizza il diagramma E/R.</p>
 							<div class="mt-auto">
 								<a href="view_gpo.php?img=ER" class="btn btn-primary">Apri</a>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- Nuova card: Diagramma di Gantt -> gantt.php -->
-				<div class="col-12 col-md-4">
-					<div class="card card-hover h-100">
-						<div class="card-body d-flex flex-column">
-							<h5 class="card-title">Diagramma di Gantt</h5>
-							<p class="card-text">Visualizza il diagramma di Gantt.</p>
-							<div class="mt-auto">
-								<a href="gantt.php" class="btn btn-primary">Vai</a>
 							</div>
 						</div>
 					</div>

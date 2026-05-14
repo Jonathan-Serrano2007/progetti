@@ -15,6 +15,7 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 require_once '../../../../vendor/autoload.php';
 require_once '../database.php';
+require_once '../tenant_context.php';
 require_once 'jwt_config.php';
 
 use Firebase\JWT\JWT;
@@ -96,14 +97,21 @@ try {
     
     $id_utente = $decoded->id_utente;
     $email = $decoded->email;
+    $token_tenant_id = isset($decoded->tenant_id) ? (string)$decoded->tenant_id : '';
+
+    if ($token_tenant_id === '') {
+        http_response_code(401);
+        echo json_encode(['error' => 'Token non valido: tenant mancante']);
+        exit();
+    }
     
     // Query per ottenere i dati dell'utente
     $sql = "SELECT u.id_utente, u.nome, u.cognome, u.email 
             FROM utenti u 
-            WHERE u.id_utente = ?";
+            WHERE u.id_utente = ? AND u.id_tenant = ?";
     try {
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id_utente]);
+        $stmt->execute([$id_utente, $token_tenant_id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$user) {
             http_response_code(404);
@@ -119,11 +127,11 @@ try {
     // Query per ottenere il ruolo dell'utente
     $sql_ruolo = "SELECT r.id_ruolo, r.nome_ruolo 
                   FROM ruoli r 
-                  INNER JOIN utente_ruolo ur ON r.id_ruolo = ur.id_ruolo 
-                  WHERE ur.email = ?";
+                  INNER JOIN utenti u ON r.id_ruolo = u.id_ruolo 
+                  WHERE u.email = ? AND u.id_tenant = ?";
     try {
         $stmt_ruolo = $pdo->prepare($sql_ruolo);
-        $stmt_ruolo->execute([$email]);
+        $stmt_ruolo->execute([$email, $token_tenant_id]);
         $ruolo = $stmt_ruolo->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $ruolo = null;
@@ -151,6 +159,7 @@ try {
     echo json_encode([
         'success' => true,
         'user' => $user,
+        'tenant_id' => $token_tenant_id,
         'role' => $ruolo,
         'permissions' => $privilegi
     ]);

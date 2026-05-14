@@ -1,45 +1,86 @@
 <?php
 require_once 'database.php';
+require_once 'tenant_context.php';
+session_start();
 
 $messaggio = '';
 $tipo_messaggio = '';
+$dettaglio_errore = '';
+
+$is_admin = isset($_SESSION['utente_ruolo']) && $_SESSION['utente_ruolo'] === 'admin';
+
+// Solo admin puo scegliere tenant custom. Per tutti gli altri: tenant di default.
+$tenant_id = $is_admin ? musicare_get_current_tenant_id(false) : musicare_get_default_tenant_id();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nome = trim($_POST['nome'] ?? '');
     $cognome = trim($_POST['cognome'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    $tenant_input = trim($_POST['tenant'] ?? $tenant_id);
+    $tenant_id = $is_admin
+        ? musicare_normalize_tenant_id($tenant_input)
+        : musicare_get_default_tenant_id();
+
+    if ($tenant_id === null) {
+        $messaggio = 'Errore: tenant non valido. Usa solo lettere, numeri, trattino e underscore.';
+        $tipo_messaggio = 'error';
+    }
 
     $password_hash = password_hash($password, PASSWORD_BCRYPT);
 
-    try {
-        $pdo->beginTransaction();
+    if ($tipo_messaggio !== 'error') {
+        try {
+            $pdo->beginTransaction();
 
-        $sql_utente = 'INSERT INTO utenti (nome, cognome, email, password) VALUES (?, ?, ?, ?)';
-        $stmt_utente = $pdo->prepare($sql_utente);
-        $stmt_utente->execute([$nome, $cognome, $email, $password_hash]);
+            // Multi-tenancy amministrabile solo da admin: tenant custom creabile solo da sessione admin.
+            $sql_tenant_exists = 'SELECT id_tenant FROM tenants WHERE id_tenant = ? LIMIT 1';
+            $stmt_tenant_exists = $pdo->prepare($sql_tenant_exists);
+            $stmt_tenant_exists->execute([$tenant_id]);
+            $tenant_exists = (bool)$stmt_tenant_exists->fetchColumn();
 
-        $nuovo_id_utente = (int)$pdo->lastInsertId();
+            if (!$tenant_exists) {
+                if (!$is_admin) {
+                    throw new RuntimeException('Tenant non esistente. Solo un amministratore puo creare nuovi tenant.');
+                }
 
-        $sql_progressi = 'INSERT INTO progressi (id_utente, media_punti, tempo_medio_impiegato) VALUES (?, 0.00, 0.00)';
-        $stmt_progressi = $pdo->prepare($sql_progressi);
-        $stmt_progressi->execute([$nuovo_id_utente]);
+                $sql_tenant_create = 'INSERT INTO tenants (id_tenant, nome_tenant) VALUES (?, ?)';
+                $stmt_tenant_create = $pdo->prepare($sql_tenant_create);
+                $stmt_tenant_create->execute([$tenant_id, 'Tenant ' . strtoupper($tenant_id)]);
+            }
 
-        $pdo->commit();
+            $sql_utente = 'INSERT INTO utenti (nome, cognome, email, password, id_tenant) VALUES (?, ?, ?, ?, ?)';
+            $stmt_utente = $pdo->prepare($sql_utente);
+            $stmt_utente->execute([$nome, $cognome, $email, $password_hash, $tenant_id]);
 
-        $messaggio = 'Registrazione completata! Ora puoi effettuare il login.';
-        $tipo_messaggio = 'success';
-    } catch (PDOException $e) {
-        $pdo->rollBack();
+            $nuovo_id_utente = (int)$pdo->lastInsertId();
 
-        $errNo = $e->errorInfo[1] ?? 0;
-        if ($errNo == 1062) {
-            $messaggio = 'Errore: questa email è già registrata.';
-        } else {
-            $messaggio = 'Errore durante la registrazione.';
+            $sql_progressi = 'INSERT INTO progressi (id_utente, media_punti, tempo_medio_impiegato, id_tenant) VALUES (?, 0.00, 0.00, ?)';
+            $stmt_progressi = $pdo->prepare($sql_progressi);
+            $stmt_progressi->execute([$nuovo_id_utente, $tenant_id]);
+
+            $pdo->commit();
+
+            $messaggio = 'Registrazione completata! Ora puoi effettuare il login.';
+            $tipo_messaggio = 'success';
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $dettaglio_errore = $e->getMessage();
+
+            $errNo = ($e instanceof PDOException) ? ($e->errorInfo[1] ?? 0) : 0;
+            if ($e instanceof RuntimeException) {
+                $messaggio = 'Errore: operazione non consentita.';
+            } elseif ($errNo == 1062) {
+                $messaggio = 'Errore: questa email è già registrata per questo tenant.';
+            } else {
+                $messaggio = 'Errore durante la registrazione.';
+            }
+
+            $tipo_messaggio = 'error';
         }
-
-        $tipo_messaggio = 'error';
     }
 }
 ?>
@@ -208,6 +249,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php if ($messaggio): ?>
             <div class="msg <?php echo $tipo_messaggio; ?>">
                 <?php echo htmlspecialchars($messaggio, ENT_QUOTES, 'UTF-8'); ?>
+                <?php if ($tipo_messaggio === 'error' && $dettaglio_errore !== ''): ?>
+                    <br><small><?php echo htmlspecialchars($dettaglio_errore, ENT_QUOTES, 'UTF-8'); ?></small>
+                <?php endif; ?>
                 <?php if ($tipo_messaggio === 'success'): ?>
                     <a href="login.php" style="color:#1ed760; font-weight:600; text-decoration:none;"> Vai al login</a>
                 <?php endif; ?>
@@ -215,6 +259,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="register.php">
+            <?php if ($is_admin): ?>
+                <label for="tenant">Tenant</label>
+                <input id="tenant" type="text" name="tenant" required value="<?php echo htmlspecialchars($tenant_id, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Es. public">
+            <?php else: ?>
+                <input type="hidden" name="tenant" value="<?php echo htmlspecialchars($tenant_id, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endif; ?>
+
             <label for="nome">Nome</label>
             <input id="nome" type="text" name="nome" placeholder="Il tuo nome" required>
 

@@ -11,6 +11,7 @@
  */
 
 require_once 'database.php';
+require_once 'tenant_context.php';
 
 /**
  * Ottieni i privilegi dell'utente loggato
@@ -18,6 +19,7 @@ require_once 'database.php';
  */
 function get_user_privileges() {
     global $pdo;
+    $tenant_id = musicare_get_current_tenant_id();
     
     // Se l'utente non è loggato, ritorna array vuoto
     if (!isset($_SESSION['utente_id']) || !isset($_SESSION['utente_ruolo'])) {
@@ -32,12 +34,13 @@ function get_user_privileges() {
         FROM privilegi p
         INNER JOIN ruolo_privilegi rp ON p.id_privilegio = rp.id_privilegio
         INNER JOIN ruoli r ON rp.id_ruolo = r.id_ruolo
-        WHERE r.nome_ruolo = ?
+        INNER JOIN utenti u ON u.id_ruolo = r.id_ruolo
+        WHERE r.nome_ruolo = ? AND u.id_utente = ? AND u.id_tenant = ?
     ";
     
     try {
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$ruolo]);
+        $stmt->execute([$ruolo, $_SESSION['utente_id'], $tenant_id]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $privilegi = [];
         foreach ($rows as $row) {

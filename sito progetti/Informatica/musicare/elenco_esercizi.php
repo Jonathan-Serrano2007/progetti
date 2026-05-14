@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 // Verifica login
 if (!isset($_SESSION['utente_id'])) {
@@ -14,10 +17,10 @@ $id_utente = $_SESSION['utente_id'];
 $sql = "SELECT u.id_utente, u.nome, u.cognome, u.email, u.id_ruolo, r.nome_ruolo
         FROM utenti u
         LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo
-        WHERE u.id_utente = ?";
+        WHERE u.id_utente = ? AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     header('Location: login.php');
@@ -27,10 +30,10 @@ try {
 $userRole = $user['nome_ruolo'] ?? 'registrato';
 
 // Controlla se l'utente ha un abbonamento attivo
-$sql_ab = "SELECT COUNT(*) as cnt FROM abbonamenti WHERE id_utente = ? AND data_inizio <= CURDATE() AND data_scadenza >= CURDATE()";
+$sql_ab = "SELECT COUNT(*) as cnt FROM abbonamenti WHERE id_utente = ? AND id_tenant = ? AND data_inizio <= CURDATE() AND data_scadenza >= CURDATE()";
 try {
     $stmt_ab = $pdo->prepare($sql_ab);
-    $stmt_ab->execute([$id_utente]);
+    $stmt_ab->execute([$id_utente, $tenant_id]);
     $res_ab = $stmt_ab->fetch(PDO::FETCH_ASSOC);
     $hasActiveSubscription = ($res_ab['cnt'] > 0);
 } catch (PDOException $e) {
