@@ -6,6 +6,9 @@
 
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 // Controlla se l'utente è loggato
 $isLoggedIn = isset($_SESSION['utente_id']);
@@ -17,13 +20,13 @@ if ($isLoggedIn) {
     $id_utente = $_SESSION['utente_id'];
     
     // Leggi i dati dell'utente incluso id_ruolo
-    $sql = "SELECT u.id_utente, u.nome, u.cognome, u.email, u.id_ruolo, r.nome_ruolo
+    $sql = "SELECT u.id_utente, u.nome, u.cognome, u.email, u.id_tenant, u.id_ruolo, r.nome_ruolo
             FROM utenti u
             LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo
-            WHERE u.id_utente = ?";
+            WHERE u.id_utente = ? AND u.id_tenant = ?";
     try {
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id_utente]);
+        $stmt->execute([$id_utente, $tenant_id]);
         $userData = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         header("Location: login.php");
@@ -283,6 +286,7 @@ if (isset($_GET['logout'])) {
             <div class="user-info">
                 <p class="mb-0">Email: <?php echo htmlspecialchars($userData['email']); ?></p>
                 <p class="mb-0">Ruolo: <strong><?php echo ucfirst($userRole); ?></strong></p>
+                <p class="mb-0">Tenant: <strong><?php echo htmlspecialchars($userData['id_tenant']); ?></strong></p>
             </div>
         </div>
 

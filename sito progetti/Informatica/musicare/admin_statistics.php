@@ -5,6 +5,9 @@
 
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 if (!isset($_SESSION['utente_id'])) {
     header("Location: login.php");
@@ -14,10 +17,10 @@ if (!isset($_SESSION['utente_id'])) {
 $id_utente = $_SESSION['utente_id'];
 
 // Verifica che sia ADMIN
-$sql = "SELECT u.id_ruolo FROM utenti u WHERE u.id_utente = ? AND u.id_ruolo = 3";
+$sql = "SELECT u.id_ruolo FROM utenti u WHERE u.id_utente = ? AND u.id_ruolo = 3 AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         header("Location: dashboard.php");
@@ -29,41 +32,58 @@ try {
 }
 
 // Statistiche globali
-$sql_utenti_totali = "SELECT COUNT(*) as total FROM utenti";
-$utenti_totali = (int) $pdo->query($sql_utenti_totali)->fetch(PDO::FETCH_ASSOC)['total'];
+$sql_utenti_totali = "SELECT COUNT(*) as total FROM utenti WHERE id_tenant = ?";
+$stmt_utenti_totali = $pdo->prepare($sql_utenti_totali);
+$stmt_utenti_totali->execute([$tenant_id]);
+$utenti_totali = (int) $stmt_utenti_totali->fetch(PDO::FETCH_ASSOC)['total'];
 
-$sql_esercizi_totali = "SELECT COUNT(*) as total FROM esercizi";
-$esercizi_totali = (int) $pdo->query($sql_esercizi_totali)->fetch(PDO::FETCH_ASSOC)['total'];
+$sql_esercizi_totali = "SELECT COUNT(*) as total FROM esercizi WHERE id_tenant = ?";
+$stmt_esercizi_totali = $pdo->prepare($sql_esercizi_totali);
+$stmt_esercizi_totali->execute([$tenant_id]);
+$esercizi_totali = (int) $stmt_esercizi_totali->fetch(PDO::FETCH_ASSOC)['total'];
 
-$sql_svolgimenti = "SELECT COUNT(*) as total FROM svolge";
-$svolgimenti_totali = (int) $pdo->query($sql_svolgimenti)->fetch(PDO::FETCH_ASSOC)['total'];
+$sql_svolgimenti = "SELECT COUNT(*) as total FROM svolge WHERE id_tenant = ?";
+$stmt_svolgimenti = $pdo->prepare($sql_svolgimenti);
+$stmt_svolgimenti->execute([$tenant_id]);
+$svolgimenti_totali = (int) $stmt_svolgimenti->fetch(PDO::FETCH_ASSOC)['total'];
 
 // Media punti globale
-$sql_media_punti = "SELECT AVG(media_punti) as media FROM progressi";
-$media_punti_globale = $pdo->query($sql_media_punti)->fetch(PDO::FETCH_ASSOC)['media'] ?? 0;
+$sql_media_punti = "SELECT AVG(media_punti) as media FROM progressi WHERE id_tenant = ?";
+$stmt_media = $pdo->prepare($sql_media_punti);
+$stmt_media->execute([$tenant_id]);
+$media_punti_globale = $stmt_media->fetch(PDO::FETCH_ASSOC)['media'] ?? 0;
 
 // Utenti per ruolo
 $sql_ruoli = "SELECT r.nome_ruolo, COUNT(u.id_utente) as count
               FROM utenti u
               LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo
+              WHERE u.id_tenant = ?
               GROUP BY r.nome_ruolo";
-$utenti_per_ruolo = $pdo->query($sql_ruoli)->fetchAll(PDO::FETCH_ASSOC);
+$stmt_ruoli = $pdo->prepare($sql_ruoli);
+$stmt_ruoli->execute([$tenant_id]);
+$utenti_per_ruolo = $stmt_ruoli->fetchAll(PDO::FETCH_ASSOC);
 
 // Top 10 utenti per punti
 $sql_top_utenti = "SELECT u.nome, u.cognome, p.media_punti
                    FROM progressi p
                    JOIN utenti u ON p.id_utente = u.id_utente
+                   WHERE p.id_tenant = ? AND u.id_tenant = ?
                    ORDER BY p.media_punti DESC
                    LIMIT 10";
-$top_utenti = $pdo->query($sql_top_utenti)->fetchAll(PDO::FETCH_ASSOC);
+$stmt_top = $pdo->prepare($sql_top_utenti);
+$stmt_top->execute([$tenant_id, $tenant_id]);
+$top_utenti = $stmt_top->fetchAll(PDO::FETCH_ASSOC);
 
 // Esercizi più svolti
 $sql_esercizi_svolti = "SELECT id_esercizio, COUNT(*) as count
                         FROM svolge
+                        WHERE id_tenant = ?
                         GROUP BY id_esercizio
                         ORDER BY count DESC
                         LIMIT 10";
-$esercizi_svolti = $pdo->query($sql_esercizi_svolti)->fetchAll(PDO::FETCH_ASSOC);
+$stmt_es_svolti = $pdo->prepare($sql_esercizi_svolti);
+$stmt_es_svolti->execute([$tenant_id]);
+$esercizi_svolti = $stmt_es_svolti->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 <!DOCTYPE html>

@@ -1,42 +1,74 @@
 <?php
 // Includiamo la connessione al database che hai fornito
 require_once 'database.php';
+require_once 'tenant_context.php';
 
 // Avviamo la sessione per mantenere l'utente loggato
 session_start();
+
+$tenant_stmt = $pdo->query('SELECT id_tenant, nome_tenant FROM tenants ORDER BY nome_tenant ASC, id_tenant ASC');
+$tenant_options = $tenant_stmt ? $tenant_stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+$tenant_lookup = [];
+foreach ($tenant_options as $tenant_option) {
+    if (!isset($tenant_option['id_tenant'])) {
+        continue;
+    }
+
+    $tenant_lookup[(string)$tenant_option['id_tenant']] = (string)($tenant_option['nome_tenant'] ?? $tenant_option['id_tenant']);
+}
+
+$selected_tenant = musicare_get_current_tenant_id(false);
+if ($selected_tenant === '' || !isset($tenant_lookup[$selected_tenant])) {
+    $selected_tenant = array_key_first($tenant_lookup) ?: musicare_get_default_tenant_id();
+}
 
 $errore = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
+    $tenant_id = musicare_normalize_tenant_id((string)($_POST['tenant'] ?? ''));
 
-    // Prepariamo la query per cercare l'utente tramite email
-    $sql = "SELECT u.id_utente, u.nome, u.password, r.nome_ruolo 
-        FROM utenti u 
-        LEFT JOIN utente_ruolo ur ON u.email = ur.email 
-        LEFT JOIN ruoli r ON ur.id_ruolo = r.id_ruolo 
-        WHERE u.email = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$email]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($tenant_id === null || !isset($tenant_lookup[$tenant_id])) {
+        $errore = "Seleziona un tenant valido dalla tendina.";
+    }
 
-    if ($user) {
-        // L'utente esiste, verifichiamo la password
-        if (password_verify($password, $user['password'])) {
-            // Password corretta! Salviamo i dati in sessione
-            $_SESSION['utente_id'] = $user['id_utente'];
-            $_SESSION['utente_nome'] = $user['nome'];
-            $_SESSION['utente_ruolo'] = $user['nome_ruolo'] ?? null;
+    if ($errore === "") {
+        // Prepariamo la query per cercare l'utente tramite email
+        $sql = "SELECT u.id_utente, u.nome, u.password, u.id_tenant, r.nome_ruolo 
+            FROM utenti u 
+            LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo 
+            WHERE u.email = ? AND u.id_tenant = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$email, $tenant_id]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Reindirizziamo l'utente alla dashboard o home
-            header("Location: index.php");
-            exit;
+        if ($user) {
+            // L'utente esiste, verifichiamo la password
+            if (password_verify($password, $user['password'])) {
+                // Password corretta! Salviamo i dati in sessione
+                $_SESSION['utente_id'] = $user['id_utente'];
+                $_SESSION['utente_nome'] = $user['nome'];
+                $_SESSION['utente_ruolo'] = $user['nome_ruolo'] ?? null;
+                $_SESSION['tenant_id'] = $user['id_tenant'];
+
+                // Se presente, usa la pagina originaria richiesta prima del login.
+                $redirectAfterLogin = $_SESSION['redirect_after_login'] ?? null;
+                if (is_string($redirectAfterLogin) && strpos($redirectAfterLogin, '/') === 0) {
+                    unset($_SESSION['redirect_after_login']);
+                    header("Location: " . $redirectAfterLogin);
+                    exit;
+                }
+
+                // Fallback: dashboard utente.
+                header("Location: dashboard.php");
+                exit;
+            } else {
+                $errore = "Password errata.";
+            }
         } else {
-            $errore = "Password errata.";
+            $errore = "Nessun utente trovato con questa email per il tenant selezionato.";
         }
-    } else {
-        $errore = "Nessun utente trovato con questa email.";
     }
     // nulla da chiudere per PDO
 }
@@ -125,14 +157,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
+        select {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.03);
+            color: #fff;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            appearance: none;
+        }
+
         input::placeholder {
             color: #8f8f8f;
         }
 
-        input:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: #1db954;
             box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.2);
+        }
+
+        select option {
+            color: #111;
         }
 
         button {
@@ -197,6 +245,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php endif; ?>
 
         <form method="POST" action="login.php">
+            <label for="tenant">Tenant</label>
+            <select id="tenant" name="tenant" required>
+                <?php foreach ($tenant_lookup as $tenantValue => $tenantLabel): ?>
+                    <option value="<?php echo htmlspecialchars($tenantValue, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $tenantValue === $selected_tenant ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($tenantLabel, ENT_QUOTES, 'UTF-8'); ?> (<?php echo htmlspecialchars($tenantValue, ENT_QUOTES, 'UTF-8'); ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
             <label for="email">Email</label>
             <input id="email" type="email" name="email" required placeholder="Inserisci la tua email">
             

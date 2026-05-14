@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_progress') {
     header('Content-Type: application/json');
@@ -23,28 +26,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     $id_utente = $_SESSION['utente_id'];
 
-    $stmt_save = $pdo->prepare("INSERT INTO svolge (id_utente, id_esercizio, tempo_impiegato, risultato) VALUES (?, ?, ?, ?)");
-    $stmt_save->execute([$id_utente, $exerciseId, $timeSpent, $result]);
+    $stmt_save = $pdo->prepare("INSERT INTO svolge (id_utente, id_esercizio, tempo_impiegato, risultato, id_tenant) VALUES (?, ?, ?, ?, ?)");
+    $stmt_save->execute([$id_utente, $exerciseId, $timeSpent, $result, $tenant_id]);
 
-    $stmt_avg = $pdo->prepare("SELECT AVG(risultato) as avg_result, AVG(tempo_impiegato) as avg_time FROM svolge WHERE id_utente = ?");
-    $stmt_avg->execute([$id_utente]);
+    $stmt_avg = $pdo->prepare("SELECT AVG(risultato) as avg_result, AVG(tempo_impiegato) as avg_time FROM svolge WHERE id_utente = ? AND id_tenant = ?");
+    $stmt_avg->execute([$id_utente, $tenant_id]);
     $avg = $stmt_avg->fetch(PDO::FETCH_ASSOC);
 
     $media_punti = $avg && $avg['avg_result'] !== null ? round($avg['avg_result'], 2) : 0;
     $tempo_medio = $avg && $avg['avg_time'] !== null ? round($avg['avg_time'], 2) : 0;
 
-    $stmt_check = $pdo->prepare("SELECT id_progresso FROM progressi WHERE id_utente = ?");
-    $stmt_check->execute([$id_utente]);
+    $stmt_check = $pdo->prepare("SELECT id_progresso FROM progressi WHERE id_utente = ? AND id_tenant = ?");
+    $stmt_check->execute([$id_utente, $tenant_id]);
     $existing = $stmt_check->fetch(PDO::FETCH_ASSOC);
 
     if ($existing) {
-        $stmt_update = $mysqli->prepare("UPDATE progressi SET media_punti = ?, tempo_medio_impiegato = ? WHERE id_utente = ?");
-        $stmt_update->bind_param("ddi", $media_punti, $tempo_medio, $id_utente);
-        $stmt_update->execute();
-        $stmt_update->close();
+        $stmt_update = $pdo->prepare("UPDATE progressi SET media_punti = ?, tempo_medio_impiegato = ? WHERE id_utente = ? AND id_tenant = ?");
+        $stmt_update->execute([$media_punti, $tempo_medio, $id_utente, $tenant_id]);
     } else {
         $nextId = 1;
-        $stmt_max = $pdo->query("SELECT MAX(id_progresso) as max_id FROM progressi");
+        $stmt_max = $pdo->prepare("SELECT MAX(id_progresso) as max_id FROM progressi WHERE id_tenant = ?");
+        $stmt_max->execute([$tenant_id]);
         if ($stmt_max) {
             $row_max = $stmt_max->fetch(PDO::FETCH_ASSOC);
             if ($row_max && $row_max['max_id'] !== null) {
@@ -52,8 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
 
-        $stmt_insert = $pdo->prepare("INSERT INTO progressi (id_progresso, id_utente, media_punti, tempo_medio_impiegato) VALUES (?, ?, ?, ?)");
-        $stmt_insert->execute([$nextId, $id_utente, $media_punti, $tempo_medio]);
+        $stmt_insert = $pdo->prepare("INSERT INTO progressi (id_progresso, id_utente, media_punti, tempo_medio_impiegato, id_tenant) VALUES (?, ?, ?, ?, ?)");
+        $stmt_insert->execute([$nextId, $id_utente, $media_punti, $tempo_medio, $tenant_id]);
     }
 
     echo json_encode(['ok' => true, 'media_punti' => $media_punti, 'tempo_medio' => $tempo_medio]);
@@ -72,22 +74,18 @@ $id_utente = $_SESSION['utente_id'];
 $sql = "SELECT u.id_utente, u.nome, u.cognome, u.email, u.id_ruolo, r.nome_ruolo
         FROM utenti u
         LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo
-        WHERE u.id_utente = ?";
-$stmt = $mysqli->prepare($sql);
-$stmt->bind_param("i", $id_utente);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+    WHERE u.id_utente = ? AND u.id_tenant = ?";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$id_utente, $tenant_id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $userRole = $user['nome_ruolo'] ?? 'registrato';
 
 // Controlla abbonamento attivo
-$sql_ab = "SELECT COUNT(*) as cnt FROM abbonamenti WHERE id_utente = ? AND data_inizio <= CURDATE() AND data_scadenza >= CURDATE()";
-$stmt_ab = $mysqli->prepare($sql_ab);
-$stmt_ab->bind_param("i", $id_utente);
-$stmt_ab->execute();
-$res_ab = $stmt_ab->get_result()->fetch_assoc();
-$stmt_ab->close();
+$sql_ab = "SELECT COUNT(*) as cnt FROM abbonamenti WHERE id_utente = ? AND id_tenant = ? AND data_inizio <= CURDATE() AND data_scadenza >= CURDATE()";
+$stmt_ab = $pdo->prepare($sql_ab);
+$stmt_ab->execute([$id_utente, $tenant_id]);
+$res_ab = $stmt_ab->fetch(PDO::FETCH_ASSOC);
 
 $hasActiveSubscription = ($res_ab['cnt'] > 0);
 

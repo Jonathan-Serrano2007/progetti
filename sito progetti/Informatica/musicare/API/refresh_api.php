@@ -14,6 +14,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 require_once '../../../../vendor/autoload.php';
 require_once '../database.php';
+require_once '../tenant_context.php';
 require_once 'jwt_config.php';
 
 use Firebase\JWT\JWT;
@@ -38,6 +39,7 @@ if (!isset($input['refresh_token'])) {
     exit();
 }
 
+
 $refresh_token = $input['refresh_token'];
 $secret_key = getJwtSecret();
 
@@ -52,11 +54,18 @@ try {
 
     $id_utente = (int) $decoded->id_utente;
     $email = (string) $decoded->email;
+    $token_tenant_id = isset($decoded->tenant_id) ? (string)$decoded->tenant_id : '';
 
-    $sql = "SELECT id_utente, nome, email, refresh_token FROM utenti WHERE id_utente = ?";
+    if ($token_tenant_id === '') {
+        http_response_code(401);
+        echo json_encode(['error' => 'Token non valido: tenant mancante']);
+        exit();
+    }
+
+    $sql = "SELECT id_utente, nome, email, refresh_token, id_tenant FROM utenti WHERE id_utente = ? AND id_tenant = ?";
     try {
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id_utente]);
+        $stmt->execute([$id_utente, $token_tenant_id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$user) {
             http_response_code(404);
@@ -76,6 +85,7 @@ try {
     $access_token_payload = array(
         'id_utente' => $id_utente,
         'email' => $email,
+        'tenant_id' => $token_tenant_id,
         'iat' => time(),
         'exp' => time() + (10 * 60)
     );
@@ -85,6 +95,7 @@ try {
     $new_refresh_token_payload = array(
         'id_utente' => $id_utente,
         'email' => $email,
+        'tenant_id' => $token_tenant_id,
         'type' => 'refresh',
         'jti' => bin2hex(random_bytes(16)),
         'iat' => time(),
@@ -93,10 +104,10 @@ try {
 
     $new_refresh_token = JWT::encode($new_refresh_token_payload, $secret_key, 'HS256');
 
-    $update_sql = "UPDATE utenti SET refresh_token = ? WHERE id_utente = ?";
+    $update_sql = "UPDATE utenti SET refresh_token = ? WHERE id_utente = ? AND id_tenant = ?";
     try {
         $update_stmt = $pdo->prepare($update_sql);
-        $update_stmt->execute([$new_refresh_token, $id_utente]);
+        $update_stmt->execute([$new_refresh_token, $id_utente, $token_tenant_id]);
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'Errore del database durante aggiornamento token']);
@@ -114,7 +125,8 @@ try {
         'user' => [
             'id_utente' => $id_utente,
             'nome' => $user['nome'],
-            'email' => $user['email']
+            'email' => $user['email'],
+            'tenant_id' => $token_tenant_id
         ]
     ]);
 } catch (\Firebase\JWT\ExpiredException $e) {

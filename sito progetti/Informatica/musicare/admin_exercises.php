@@ -5,6 +5,9 @@
 
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 if (!isset($_SESSION['utente_id'])) {
     header("Location: login.php");
@@ -14,10 +17,10 @@ if (!isset($_SESSION['utente_id'])) {
 $id_utente = $_SESSION['utente_id'];
 
 // Verifica che sia ADMIN
-$sql = "SELECT u.id_ruolo FROM utenti u WHERE u.id_utente = ? AND u.id_ruolo = 3";
+$sql = "SELECT u.id_ruolo FROM utenti u WHERE u.id_utente = ? AND u.id_ruolo = 3 AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         header("Location: dashboard.php");
@@ -42,11 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tempo = intval($_POST['tempo'] ?? 0);
             $tipo = $_POST['tipo'] ?? 'base';
             
-            $sql_insert = "INSERT INTO esercizi (categoria_esercizio, difficolta, tempo_disponibile, tipo_esercizio) 
-                          VALUES (?, ?, ?, ?)";
+            $sql_insert = "INSERT INTO esercizi (categoria_esercizio, difficolta, tempo_disponibile, tipo_esercizio, id_tenant) 
+                          VALUES (?, ?, ?, ?, ?)";
             try {
                 $stmt_insert = $pdo->prepare($sql_insert);
-                if ($stmt_insert->execute([$categoria, $difficolta, $tempo, $tipo])) {
+                if ($stmt_insert->execute([$categoria, $difficolta, $tempo, $tipo, $tenant_id])) {
                     $messaggio = "Esercizio creato con successo!";
                     $tipo_messaggio = "success";
                 } else {
@@ -62,9 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Leggi tutti gli esercizi
-$sql_esercizi = "SELECT * FROM esercizi ORDER BY tipo_esercizio DESC, difficolta ASC";
+$sql_esercizi = "SELECT * FROM esercizi WHERE id_tenant = ? ORDER BY tipo_esercizio DESC, difficolta ASC";
 try {
-    $stmt_es = $pdo->query($sql_esercizi);
+    $stmt_es = $pdo->prepare($sql_esercizi);
+    $stmt_es->execute([$tenant_id]);
     $esercizi = $stmt_es->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $esercizi = [];

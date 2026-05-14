@@ -14,6 +14,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 require_once '../../../../vendor/autoload.php';
 require_once '../database.php';
+require_once '../tenant_context.php';
 require_once 'jwt_config.php';
 
 use Firebase\JWT\JWT;
@@ -42,14 +43,15 @@ if (!isset($input['email']) || !isset($input['password'])) {
 
 $email = trim($input['email']);
 $password = $input['password'];
+$tenant_id = musicare_get_current_tenant_id(false);
 
 // Verifichiamo le credenziali dell'utente
-$sql = "SELECT u.id_utente, u.nome, u.password 
+$sql = "SELECT u.id_utente, u.nome, u.password, u.id_tenant 
         FROM utenti u 
-        WHERE u.email = ?";
+        WHERE u.email = ? AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$email]);
+    $stmt->execute([$email, $tenant_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     http_response_code(500);
@@ -68,6 +70,7 @@ if ($user) {
             $access_token_payload = array(
                 'id_utente' => $user['id_utente'],
                 'email' => $email,
+                'tenant_id' => $user['id_tenant'],
                 'iat' => time(),
                 'exp' => time() + (10 * 60)
             );
@@ -78,6 +81,7 @@ if ($user) {
             $refresh_token_payload = array(
                 'id_utente' => $user['id_utente'],
                 'email' => $email,
+                'tenant_id' => $user['id_tenant'],
                 'type' => 'refresh',
                 'jti' => bin2hex(random_bytes(16)),
                 'iat' => time(),
@@ -87,10 +91,10 @@ if ($user) {
             $refresh_token = JWT::encode($refresh_token_payload, $secret_key, 'HS256');
 
             // Salviamo il refresh token nel database per poterlo invalidare/ruotare
-            $update_sql = "UPDATE utenti SET refresh_token = ? WHERE id_utente = ?";
+            $update_sql = "UPDATE utenti SET refresh_token = ? WHERE id_utente = ? AND id_tenant = ?";
             try {
                 $update_stmt = $pdo->prepare($update_sql);
-                $update_stmt->execute([$refresh_token, $user['id_utente']]);
+                $update_stmt->execute([$refresh_token, $user['id_utente'], $user['id_tenant']]);
             } catch (PDOException $e) {
                 http_response_code(500);
                 echo json_encode(['error' => 'Errore del database durante salvataggio refresh token']);
@@ -108,7 +112,8 @@ if ($user) {
                 'user' => [
                     'id_utente' => $user['id_utente'],
                     'nome' => $user['nome'],
-                    'email' => $email
+                    'email' => $email,
+                    'tenant_id' => $user['id_tenant']
                 ]
             ]);
         } catch (Throwable $e) {

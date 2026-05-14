@@ -6,6 +6,9 @@
 
 session_start();
 require_once 'database.php';
+require_once 'tenant_context.php';
+
+$tenant_id = musicare_get_current_tenant_id();
 
 if (!isset($_SESSION['utente_id'])) {
     header("Location: login.php");
@@ -15,10 +18,10 @@ if (!isset($_SESSION['utente_id'])) {
 $id_utente = $_SESSION['utente_id'];
 
 // Verifica il ruolo dell'utente
-$sql = "SELECT u.id_ruolo, r.nome_ruolo FROM utenti u LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo WHERE u.id_utente = ?";
+$sql = "SELECT u.id_ruolo, r.nome_ruolo FROM utenti u LEFT JOIN ruoli r ON u.id_ruolo = r.id_ruolo WHERE u.id_utente = ? AND u.id_tenant = ?";
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$id_utente]);
+    $stmt->execute([$id_utente, $tenant_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$user || !in_array($user['nome_ruolo'], ['pro', 'admin'])) {
         header("Location: dashboard.php");
@@ -30,19 +33,20 @@ try {
 }
 
 // Leggi gli esercizi avanzati
-$sql_esercizi = "SELECT * FROM esercizi WHERE tipo_esercizio = 'avanzato' ORDER BY difficolta DESC";
+$sql_esercizi = "SELECT * FROM esercizi WHERE tipo_esercizio = 'avanzato' AND id_tenant = ? ORDER BY difficolta DESC";
 try {
-    $stmt_es = $pdo->query($sql_esercizi);
+    $stmt_es = $pdo->prepare($sql_esercizi);
+    $stmt_es->execute([$tenant_id]);
     $esercizi = $stmt_es->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $esercizi = [];
 }
 
 // Leggi i progressi dell'utente
-$sql_progress = "SELECT * FROM svolge WHERE id_utente = ? ORDER BY data_completamento DESC LIMIT 20";
+$sql_progress = "SELECT * FROM svolge WHERE id_utente = ? AND id_tenant = ? ORDER BY data_completamento DESC LIMIT 20";
 try {
     $stmt_progress = $pdo->prepare($sql_progress);
-    $stmt_progress->execute([$id_utente]);
+    $stmt_progress->execute([$id_utente, $tenant_id]);
     $progressi = $stmt_progress->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $progressi = [];
