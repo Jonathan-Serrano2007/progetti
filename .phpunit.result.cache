@@ -1,0 +1,1 @@
+{"version":1,"defects":[],"times":{"JwtConfigTest::testDefaultSecretUsedWhenEnvEmpty":0.008,"JwtConfigTest::testTooShortSecretThrows":0,"TokenHelpersTest::testExtractBearerFromAuthorizationHeader":0,"TokenHelpersTest::testExtractFromGetFallback":0}}
