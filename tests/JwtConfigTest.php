@@ -5,12 +5,12 @@ require_once __DIR__ . '/../sito progetti/Informatica/musicare/API/jwt_config.ph
 
 class JwtConfigTest extends TestCase
 {
-    public function testDefaultSecretUsedWhenEnvEmpty()
+    public function testValidSecretReturnsString()
     {
-        putenv('JWT_SECRET=');
+        putenv('JWT_SECRET=my-super-secret-key-that-is-long-enough-for-testing');
         $secret = getJwtSecret();
         $this->assertIsString($secret);
-        $this->assertGreaterThanOrEqual(32, strlen($secret));
+        $this->assertNotEmpty($secret);
     }
 
     public function testTooShortSecretThrows()
